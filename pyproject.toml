@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lobster-auto"
+version = "0.1.0"
+description = "A safe local automation runner designed for OpenClaw-style agent workflows."
+readme = "README_LOBSTER_AUTO.md"
+requires-python = ">=3.10"
+authors = [{ name = "Baijianyang" }]
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+lobster = "lobster_auto.cli:main"
+
+[tool.setuptools]
+packages = ["lobster_auto"]
