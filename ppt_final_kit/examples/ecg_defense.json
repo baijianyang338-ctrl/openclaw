@@ -1,0 +1,92 @@
+{
+  "school": "本科毕业答辩 / Graduation Defense",
+  "title": "基于深度学习的 ECG 心电诊断研究",
+  "subtitle": "从数据建模、模型训练到边缘端部署的完整自动化研究流程",
+  "meta": [
+    "答辩人：白建阳",
+    "研究方向：深度学习 · ECG · 自动诊断",
+    "技术栈：TensorFlow / CNN-LSTM / ONNX / Raspberry Pi",
+    "生成工具：PPT Final Kit"
+  ],
+  "thanks": "感谢各位老师聆听",
+  "sections": [
+    {
+      "title": "研究背景与问题定义",
+      "desc": "从心电信号临床价值出发，明确自动诊断系统的工程目标。",
+      "slides": [
+        {
+          "title": "为什么需要 ECG 自动诊断？",
+          "layout": "cards",
+          "items": [
+            {"title": "临床需求", "body": "心电图是心律异常筛查的重要工具，但人工判读依赖经验，效率和一致性受限。"},
+            {"title": "数据挑战", "body": "ECG 信号存在噪声、个体差异、类别不均衡和多标签诊断等问题。"},
+            {"title": "工程目标", "body": "构建可训练、可压缩、可部署的深度学习模型，实现边缘端辅助诊断。"}
+          ],
+          "note": "本页讲清楚研究价值和痛点。"
+        },
+        {
+          "title": "项目整体技术路线",
+          "layout": "flow",
+          "items": [
+            {"title": "采集", "body": "AD8232\n树莓派"},
+            {"title": "预处理", "body": "滤波\n归一化"},
+            {"title": "建模", "body": "CNN\nLSTM"},
+            {"title": "压缩", "body": "ONNX\nINT8"},
+            {"title": "部署", "body": "边缘端\n推理"}
+          ]
+        }
+      ]
+    },
+    {
+      "title": "模型设计与实现",
+      "desc": "围绕信号特征提取和时序建模设计深度学习网络。",
+      "slides": [
+        {
+          "title": "核心模型结构",
+          "layout": "two_col",
+          "items": [
+            {"title": "CNN 特征提取", "body": "卷积层学习局部波形特征，例如 QRS 波群、ST 段变化和节律异常线索。\n池化层降低维度，提升抗噪能力。"},
+            {"title": "LSTM 时序建模", "body": "循环结构捕捉 ECG 时间依赖关系，适合处理连续心拍和节律模式。\n输出层完成多类别或多标签诊断。"}
+          ]
+        },
+        {
+          "title": "训练与评估指标",
+          "layout": "metrics",
+          "items": [
+            {"label": "Accuracy", "value": "92%+", "body": "整体分类准确率"},
+            {"label": "F1-score", "value": "0.89", "body": "兼顾精确率与召回率"},
+            {"label": "Model Size", "value": "0.84MB", "body": "INT8 量化后体积"},
+            {"label": "Deploy", "value": "Edge", "body": "支持边缘端推理"}
+          ]
+        }
+      ]
+    },
+    {
+      "title": "部署与系统验证",
+      "desc": "将模型从训练环境迁移到边缘端，验证实际可用性。",
+      "slides": [
+        {
+          "title": "从模型到边缘端部署",
+          "layout": "timeline",
+          "items": [
+            {"time": "01", "title": "训练", "body": "TensorFlow"},
+            {"time": "02", "title": "导出", "body": "ONNX"},
+            {"time": "03", "title": "量化", "body": "INT8"},
+            {"time": "04", "title": "传输", "body": "树莓派"},
+            {"time": "05", "title": "推理", "body": "实时诊断"}
+          ]
+        },
+        {
+          "title": "成果总结",
+          "layout": "cards",
+          "items": [
+            {"title": "完成数据处理链路", "body": "建立了 ECG 数据读取、清洗、归一化和标签处理流程。"},
+            {"title": "完成深度模型训练", "body": "实现 CNN/LSTM 自动诊断模型，并完成指标评估。"},
+            {"title": "完成轻量化部署", "body": "将模型导出为 ONNX 并进行 INT8 量化，降低部署成本。"},
+            {"title": "形成工程闭环", "body": "覆盖采集、训练、压缩、部署和测试全过程。"}
+          ]
+        }
+      ]
+    }
+  ]
+}
