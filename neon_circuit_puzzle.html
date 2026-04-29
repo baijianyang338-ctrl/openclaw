@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON CIRCUIT：量子折光塔</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 20% 15%, #12305a 0, #07111f 35%, #030712 100%);
+    color: #e5f7ff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    height: 100vh;
+  }
+  aside {
+    padding: 24px 22px;
+    background: rgba(2, 6, 23, .72);
+    border-right: 1px solid rgba(125, 211, 252, .25);
+    box-shadow: 10px 0 40px rgba(0,0,0,.25);
+    backdrop-filter: blur(10px);
+    z-index: 10;
+  }
+  h1 { margin: 0; font-size: 28px; line-height: 1.05; letter-spacing: .04em; }
+  h1 span { display:block; color:#38bdf8; font-size:15px; margin-top:8px; letter-spacing:.18em; }
+  .tagline { color:#b9e6ff; opacity:.86; font-size:14px; line-height:1.65; margin:20px 0; }
+  .panel {
+    border: 1px solid rgba(56,189,248,.28);
+    background: rgba(15, 23, 42, .62);
+    border-radius: 16px;
+    padding: 14px 14px;
+    margin: 14px 0;
+  }
+  .stat { display:flex; justify-content:space-between; gap:10px; margin: 8px 0; color:#dff8ff; font-size:14px; }
+  .stat b { color:#67e8f9; }
+  button {
+    border: 0;
+    border-radius: 12px;
+    padding: 11px 12px;
+    cursor: pointer;
+    color: #06111d;
+    font-weight: 800;
+    background: linear-gradient(135deg, #22d3ee, #a7f3d0);
+    box-shadow: 0 8px 24px rgba(34,211,238,.2);
+    transition: transform .12s ease, filter .12s ease;
+  }
+  button:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .btns { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:14px; }
+  .ghost { background: rgba(148,163,184,.16); color:#e0f2fe; border:1px solid rgba(148,163,184,.25); box-shadow:none; }
+  .rules { color:#cfefff; font-size:13px; line-height:1.7; }
+  .rules kbd { background:#0f172a; border:1px solid rgba(125,211,252,.28); padding:2px 6px; border-radius:7px; color:#67e8f9; }
+  main { position: relative; display:flex; align-items:center; justify-content:center; }
+  canvas {
+    width: min(calc(100vw - 370px), 980px);
+    height: min(92vh, 720px);
+    border-radius: 22px;
+    border: 1px solid rgba(125,211,252,.25);
+    background: rgba(2,6,23,.55);
+    box-shadow: 0 0 80px rgba(34,211,238,.16), inset 0 0 40px rgba(14,165,233,.07);
+  }
+  .toast {
+    position:absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: rgba(2,6,23,.76);
+    color:#e0f2fe;
+    border:1px solid rgba(125,211,252,.22);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .25s ease;
+    font-size:14px;
+  }
+  .toast.show { opacity:1; }
+  .modal {
+    position:absolute; inset:0;
+    display:none; place-items:center;
+    background: rgba(2,6,23,.55);
+    backdrop-filter: blur(7px);
+  }
+  .modal.show { display:grid; }
+  .card {
+    width:min(560px, 90vw);
+    background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,6,23,.98));
+    border:1px solid rgba(125,211,252,.3);
+    border-radius:24px;
+    padding:26px;
+    box-shadow:0 30px 90px rgba(0,0,0,.45);
+  }
+  .card h2 { margin:0 0 10px; color:#67e8f9; }
+  .card p { color:#dbeafe; line-height:1.75; }
+  @media (max-width: 850px) {
+    body { overflow:auto; }
+    .app { grid-template-columns: 1fr; height:auto; }
+    aside { border-right:0; border-bottom:1px solid rgba(125,211,252,.25); }
+    main { min-height: 70vh; padding:12px; }
+    canvas { width: 96vw; height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>NEON CIRCUIT<span>量子折光塔</span></h1>
+    <p class="tagline">一款 2D 平面智力游戏：旋转镜片、折射激光、点亮全部量子核心。每一步都影响全局路径。</p>
+    <div class="panel">
+      <div class="stat"><span>关卡</span><b id="levelName">-</b></div>
+      <div class="stat"><span>步数</span><b id="moves">0</b></div>
+      <div class="stat"><span>核心</span><b id="cores">0/0</b></div>
+      <div class="stat"><span>最佳</span><b id="best">-</b></div>
+    </div>
+    <div class="btns">
+      <button id="hintBtn">提示 H</button>
+      <button id="autoBtn">自动校准 A</button>
+      <button class="ghost" id="undoBtn">撤销 U</button>
+      <button class="ghost" id="resetBtn">重置 R</button>
+      <button class="ghost" id="prevBtn">上一关 P</button>
+      <button class="ghost" id="nextBtn">下一关 N</button>
+    </div>
+    <div class="panel rules">
+      <b>玩法</b><br>
+      点击蓝色镜片切换 <kbd>/</kbd> 与 <kbd>\</kbd>。<br>
+      让青色激光经过镜片折射，点亮所有绿色核心。<br>
+      紫色棱镜可分裂光束，红色墙体会阻断光路。<br><br>
+      <b>快捷键</b>：<kbd>H</kbd> 提示、<kbd>A</kbd> 自动校准、<kbd>U</kbd> 撤销、<kbd>R</kbd> 重置。
+    </div>
+  </aside>
+  <main>
+    <canvas id="game" width="980" height="720"></canvas>
+    <div class="toast" id="toast"></div>
+    <div class="modal" id="modal">
+      <div class="card">
+        <h2 id="modalTitle">通关</h2>
+        <p id="modalText"></p>
+        <button id="modalBtn">继续</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const size = 64;
+const ox = 66, oy = 66;
+const gridW = 13, gridH = 9;
+const dirs = {R:[1,0], L:[-1,0], U:[0,-1], D:[0,1]};
+const refl = {
+  '/': {R:'U', U:'R', L:'D', D:'L'},
+  '\\': {R:'D', D:'R', L:'U', U:'L'}
+};
+const levels = [
+  {name:'01 初醒', emitter:{x:0,y:4,d:'R'}, targetMoves:4,
+   mirrors:[{x:3,y:4,t:'/'},{x:3,y:2,t:'\\'},{x:7,y:2,t:'/'},{x:7,y:6,t:'\\'}],
+   cores:[{x:10,y:2},{x:10,y:6}], blocks:[{x:5,y:4},{x:6,y:4}], prisms:[]},
+  {name:'02 双生', emitter:{x:1,y:7,d:'R'}, targetMoves:6,
+   mirrors:[{x:4,y:7,t:'/'},{x:4,y:3,t:'\\'},{x:8,y:3,t:'/'},{x:8,y:6,t:'\\'},{x:10,y:6,t:'/'}],
+   cores:[{x:11,y:3},{x:2,y:1}], blocks:[{x:6,y:5},{x:6,y:6},{x:6,y:7}], prisms:[{x:4,y:5}]},
+  {name:'03 回声矩阵', emitter:{x:0,y:1,d:'R'}, targetMoves:8,
+   mirrors:[{x:2,y:1,t:'\\'},{x:2,y:5,t:'/'},{x:5,y:5,t:'\\'},{x:5,y:2,t:'/'},{x:9,y:2,t:'\\'},{x:9,y:7,t:'/'}],
+   cores:[{x:11,y:7},{x:7,y:5},{x:11,y:2}], blocks:[{x:7,y:1},{x:7,y:2},{x:7,y:3}], prisms:[{x:5,y:7}]},
+  {name:'04 折光塔', emitter:{x:6,y:8,d:'U'}, targetMoves:10,
+   mirrors:[{x:6,y:6,t:'/'},{x:3,y:6,t:'\\'},{x:3,y:3,t:'/'},{x:8,y:3,t:'\\'},{x:8,y:1,t:'/'},{x:11,y:1,t:'\\'},{x:10,y:6,t:'/'}],
+   cores:[{x:1,y:3},{x:11,y:6},{x:6,y:1},{x:10,y:3}], blocks:[{x:5,y:4},{x:6,y:4},{x:7,y:4},{x:1,y:6}], prisms:[{x:8,y:6},{x:6,y:3}]}
+];
+let idx=0, state, history=[], rays=[], lit=new Set(), anim=0;
+const el = id=>document.getElementById(id);
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function load(i){idx=(i+levels.length)%levels.length; state=clone(levels[idx]); history=[]; compute(); updateUI(); hideModal();}
+function key(x,y){return x+','+y;}
+function mirrorAt(x,y){return state.mirrors.find(m=>m.x===x&&m.y===y);}
+function prismAt(x,y){return state.prisms.find(p=>p.x===x&&p.y===y);}
+function blocked(x,y){return x<0||y<0||x>=gridW||y>=gridH||state.blocks.some(b=>b.x===x&&b.y===y);}
+function compute(){
+  rays=[]; lit=new Set();
+  const queue=[{x:state.emitter.x,y:state.emitter.y,d:state.emitter.d,path:[]}];
+  const seen=new Set(); let safety=0;
+  while(queue.length && safety++<500){
+    const beam=queue.shift(); let {x,y,d}=beam; let path=[...beam.path];
+    for(let step=0; step<80; step++){
+      const [dx,dy]=dirs[d]; x+=dx; y+=dy;
+      if(blocked(x,y)){ path.push({x,y,stop:true}); break; }
+      const sig=x+','+y+','+d; if(seen.has(sig)){ path.push({x,y,loop:true}); break; }
+      seen.add(sig); path.push({x,y,d});
+      const c = state.cores.find(c=>c.x===x&&c.y===y); if(c) lit.add(key(x,y));
+      const p=prismAt(x,y); if(p){
+        const split = d==='R'||d==='L' ? ['U','D'] : ['L','R'];
+        for(const sd of split) queue.push({x,y,d:sd,path:[...path]});
+      }
+      const m=mirrorAt(x,y); if(m) d=refl[m.t][d];
+    }
+    rays.push(path);
+  }
+}
+function solved(){return state.cores.every(c=>lit.has(key(c.x,c.y)));}
+function updateUI(){
+  el('levelName').textContent=state.name;
+  el('moves').textContent=history.length;
+  el('cores').textContent=lit.size+'/'+state.cores.length;
+  const best=localStorage.getItem('neon-best-'+idx); el('best').textContent=best||'-';
+}
+function toast(t){const e=el('toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove('show'),1800);}
+function showModal(title,text){el('modalTitle').textContent=title; el('modalText').textContent=text; el('modal').classList.add('show');}
+function hideModal(){el('modal').classList.remove('show');}
+function toggleMirror(x,y){ const m=mirrorAt(x,y); if(!m)return; history.push(clone(state.mirrors)); m.t=m.t==='/'?'\\':'/'; compute(); updateUI(); if(solved()){ const prev=+(localStorage.getItem('neon-best-'+idx)||999); if(history.length<prev)localStorage.setItem('neon-best-'+idx,history.length); showModal('核心全部点亮','本关完成。步数：'+history.length+'。目标步数：'+state.targetMoves+'。继续挑战下一关。'); } }
+canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect(); const sx=canvas.width/r.width, sy=canvas.height/r.height; const x=Math.floor((e.clientX-r.left)*sx-ox)/size|0; const y=Math.floor((e.clientY-r.top)*sy-oy)/size|0; toggleMirror(x,y);});
+function undo(){ if(!history.length){toast('没有可撤销步骤'); return;} state.mirrors=history.pop(); compute(); updateUI();}
+function reset(){ state=clone(levels[idx]); history=[]; compute(); updateUI(); hideModal(); toast('已重置');}
+function hint(){ const off=state.mirrors.find(m=>!rayTouches(m.x,m.y)); if(off) toast('提示：检查坐标 '+(off.x+1)+','+(off.y+1)+' 的镜片'); else toast('提示：尝试让光线经过棱镜分裂'); }
+function rayTouches(x,y){return rays.some(path=>path.some(p=>p.x===x&&p.y===y));}
+function auto(){
+  const originals=clone(state.mirrors); const n=state.mirrors.length; let best=null;
+  for(let mask=0; mask<(1<<Math.min(n,14)); mask++){
+    state.mirrors=clone(originals);
+    for(let i=0;i<n;i++) if(mask&(1<<i)) state.mirrors[i].t=state.mirrors[i].t==='/'?'\\':'/';
+    compute(); if(solved()){best=clone(state.mirrors); break;}
+  }
+  state.mirrors=best||originals; history=[]; compute(); updateUI(); toast(best?'自动校准完成':'未找到快速解'); if(best) showModal('自动校准完成','系统已找到一组可行解。你也可以重置后自己挑战。');
+}
+el('hintBtn').onclick=hint; el('autoBtn').onclick=auto; el('undoBtn').onclick=undo; el('resetBtn').onclick=reset; el('nextBtn').onclick=()=>load(idx+1); el('prevBtn').onclick=()=>load(idx-1); el('modalBtn').onclick=()=>load(idx+1);
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(k==='h')hint(); if(k==='a')auto(); if(k==='u')undo(); if(k==='r')reset(); if(k==='n')load(idx+1); if(k==='p')load(idx-1);});
+function draw(){ anim+=0.018; ctx.clearRect(0,0,canvas.width,canvas.height); drawGrid(); drawObjects(); drawRays(); drawObjects(true); requestAnimationFrame(draw);}
+function drawGrid(){
+  ctx.save(); ctx.translate(ox,oy);
+  for(let y=0;y<gridH;y++) for(let x=0;x<gridW;x++){
+    ctx.fillStyle=(x+y)%2?'rgba(15,23,42,.42)':'rgba(30,41,59,.38)';
+    ctx.fillRect(x*size,y*size,size-2,size-2);
+    ctx.strokeStyle='rgba(125,211,252,.08)'; ctx.strokeRect(x*size,y*size,size-2,size-2);
+  }
+  ctx.restore();
+}
+function cell(x,y){return [ox+x*size+size/2,oy+y*size+size/2];}
+function glowCircle(x,y,r,color){ctx.save(); ctx.shadowColor=color; ctx.shadowBlur=24; ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.restore();}
+function drawObjects(top=false){
+  if(!top){
+    for(const b of state.blocks){const [cx,cy]=cell(b.x,b.y); ctx.fillStyle='#7f1d1d'; ctx.fillRect(cx-25,cy-25,50,50); ctx.strokeStyle='#fb7185'; ctx.strokeRect(cx-25,cy-25,50,50);}
+    for(const c of state.cores){const [cx,cy]=cell(c.x,c.y); glowCircle(cx,cy,lit.has(key(c.x,c.y))?17:11,lit.has(key(c.x,c.y))?'#34d399':'#14532d'); ctx.strokeStyle='#bbf7d0'; ctx.beginPath(); ctx.arc(cx,cy,22,0,Math.PI*2); ctx.stroke();}
+    const [ex,ey]=cell(state.emitter.x,state.emitter.y); ctx.fillStyle='#22d3ee'; ctx.beginPath(); ctx.moveTo(ex-22,ey-18); ctx.lineTo(ex+24,ey); ctx.lineTo(ex-22,ey+18); ctx.closePath(); ctx.fill(); ctx.fillStyle='#ecfeff'; ctx.fillText('SRC',ex-15,ey+4);
+    for(const p of state.prisms){const [cx,cy]=cell(p.x,p.y); ctx.save(); ctx.translate(cx,cy); ctx.rotate(Math.PI/4+anim); ctx.strokeStyle='#c084fc'; ctx.lineWidth=3; ctx.strokeRect(-19,-19,38,38); ctx.restore(); glowCircle(cx,cy,5,'#d8b4fe');}
+  }
+  for(const m of state.mirrors){const [cx,cy]=cell(m.x,m.y); ctx.save(); ctx.translate(cx,cy); ctx.strokeStyle='#7dd3fc'; ctx.lineWidth=7; ctx.shadowColor='#38bdf8'; ctx.shadowBlur=14; ctx.beginPath(); if(m.t==='/'){ctx.moveTo(-21,21); ctx.lineTo(21,-21);} else {ctx.moveTo(-21,-21); ctx.lineTo(21,21);} ctx.stroke(); ctx.restore(); if(top){ctx.fillStyle='rgba(224,242,254,.85)'; ctx.font='12px monospace'; ctx.fillText(m.t,cx-4,cy+4);} }
+}
+function drawRays(){
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  for(const path of rays){ if(path.length<1)continue; ctx.beginPath(); let started=false; for(const p of path){const [cx,cy]=cell(Math.max(0,Math.min(gridW-1,p.x)),Math.max(0,Math.min(gridH-1,p.y))); if(!started){ctx.moveTo(cx,cy); started=true;} else ctx.lineTo(cx,cy);} ctx.strokeStyle='rgba(34,211,238,.26)'; ctx.lineWidth=12; ctx.shadowColor='#22d3ee'; ctx.shadowBlur=18; ctx.stroke(); ctx.strokeStyle='#a5f3fc'; ctx.lineWidth=3; ctx.shadowBlur=8; ctx.stroke(); }
+  ctx.restore();
+}
+load(0); draw();
+</script>
+</body>
+</html>
