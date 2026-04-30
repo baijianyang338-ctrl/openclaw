@@ -1,0 +1,71 @@
+{
+  "kicker": "OPENCLAW AGENT SYSTEM",
+  "title": "AI Agent 自动化工作站能力展示",
+  "subtitle": "从工具调用、PPT 生成到前后端项目交付的多模块协作体系",
+  "thanks": "感谢观看",
+  "sections": [
+    {
+      "title": "01 系统定位",
+      "desc": "把普通电脑改造成能执行任务、生成文件、复盘经验的本地 AI 工作站。",
+      "slides": [
+        {
+          "title": "核心价值：不只回答，而是交付",
+          "layout": "cards",
+          "mode": "build",
+          "items": [
+            {"title": "统一入口", "body": "通过微信、网页或终端下达任务，减少多软件切换。"},
+            {"title": "工具调用", "body": "调用 Python、PPT、前后端、PowerShell Bridge 等本地能力。"},
+            {"title": "结果沉淀", "body": "每次任务输出文件、日志和复盘卡片，形成可复用经验。"}
+          ],
+          "note": "本页采用分步构建：播放时逐张出现卡片，形成动画节奏。"
+        }
+      ]
+    },
+    {
+      "title": "02 工具链架构",
+      "desc": "将不同能力拆成稳定模块，由 OpenClaw 调度。",
+      "slides": [
+        {
+          "title": "多模块协作流程",
+          "layout": "flow",
+          "mode": "build",
+          "items": [
+            {"title": "需求", "body": "用户目标"},
+            {"title": "规划", "body": "拆解步骤"},
+            {"title": "执行", "body": "调用工具"},
+            {"title": "检查", "body": "验证结果"},
+            {"title": "复盘", "body": "沉淀经验"}
+          ]
+        },
+        {
+          "title": "当前模块能力",
+          "layout": "metrics",
+          "mode": "build",
+          "items": [
+            {"label": "PPT", "value": "Motion", "body": "分步构建与转场"},
+            {"label": "Python", "value": "Auto", "body": "脚本化执行"},
+            {"label": "Fullstack", "value": "API", "body": "前后端项目生成"},
+            {"label": "Bridge", "value": "Win", "body": "Windows 工具桥接"}
+          ]
+        }
+      ]
+    },
+    {
+      "title": "03 高端 PPT 策略",
+      "desc": "高级感来自结构、节奏、留白和统一视觉，而不是堆砌文字。",
+      "slides": [
+        {
+          "title": "让 PPT 变高级的 4 个原则",
+          "layout": "cards",
+          "mode": "build",
+          "items": [
+            {"title": "结论先行", "body": "每页只讲一个核心观点，避免整页堆字。"},
+            {"title": "分步出现", "body": "将复杂信息拆成多个 build 页面，形成讲述节奏。"},
+            {"title": "视觉统一", "body": "统一深蓝主色、圆角卡片、顶部色条和页码体系。"},
+            {"title": "动画克制", "body": "正式场景优先 fade/push，不使用低质夸张动画。"}
+          ]
+        }
+      ]
+    }
+  ]
+}
