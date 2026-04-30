@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>FPS鼠标一次定位训练</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050814;color:#eaf6ff;font-family:Arial,"Microsoft YaHei",sans-serif;user-select:none}
+canvas{display:block;width:100vw;height:100vh;background:#050814;cursor:crosshair}
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 28%,rgba(38,111,255,.42),transparent 38%),radial-gradient(circle at 85% 80%,rgba(255,57,238,.22),transparent 34%),rgba(5,8,20,.95);z-index:5}
+.card{width:min(760px,92vw);padding:30px;border:1px solid rgba(255,255,255,.22);border-radius:28px;background:rgba(255,255,255,.08);box-shadow:0 0 70px rgba(25,247,255,.30),inset 0 0 30px rgba(255,255,255,.04);backdrop-filter:blur(12px);position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;right:-80px;top:-80px;width:190px;height:190px;border:2px solid rgba(25,247,255,.55);border-radius:50%;box-shadow:0 0 28px rgba(25,247,255,.65);animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge{display:inline-block;padding:8px 13px;border:1px solid rgba(25,247,255,.45);border-radius:999px;color:#9dfcff;font-weight:900;letter-spacing:.08em;background:rgba(25,247,255,.08)}
+h1{font-size:clamp(42px,7vw,72px);line-height:.95;margin:18px 0 14px;text-shadow:0 0 24px rgba(25,247,255,.75)}
+h1 span{display:block;background:linear-gradient(90deg,#fff,#8dffff,#a78bff,#ff8bf8);-webkit-background-clip:text;color:transparent}
+p{line-height:1.7;color:rgba(234,246,255,.76)}
+button{border:0;border-radius:16px;padding:14px 24px;background:linear-gradient(135deg,#8dffff,#4d8cff 48%,#d56cff);color:#071020;font-weight:900;font-size:17px;cursor:pointer;box-shadow:0 0 25px rgba(25,247,255,.35)}
+.sens{margin:18px 0;padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.06)}
+.sens label{display:flex;justify-content:space-between;font-weight:900;margin-bottom:8px}
+input{width:100%;accent-color:#19f7ff}
+.hide{display:none!important}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.stat{padding:13px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.07)}
+.stat b{display:block;font-size:28px;margin-top:4px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="home" class="overlay">
+  <div class="card">
+    <div class="badge">3D FLICK AIM TRAINER</div>
+    <h1>FPS 鼠标<br><span>一次定位训练</span></h1>
+    <p>目标随机出现，你从中心准星一次甩到目标并点击。每次开枪后准星自动回到中心。目标会越来越小、消失越来越快。</p>
+    <div class="sens">
+      <label><span>鼠标灵敏度</span><b id="sensText">1.00x</b></label>
+      <input id="sens" type="range" min="0.2" max="3" step="0.05" value="1">
+    </div>
+    <button id="startBtn">开始训练</button>
+    <p>操作：鼠标移动定位，左键点击。游戏内按 <b>[</b> 降低灵敏度，按 <b>]</b> 提高灵敏度，按 <b>R</b> 重开。</p>
+  </div>
+</div>
+
+<div id="result" class="overlay hide">
+  <div class="card">
+    <h1>训练完成</h1>
+    <p id="comment"></p>
+    <div class="stats">
+      <div class="stat">分数<b id="finalScore">0</b></div>
+      <div class="stat">命中率<b id="finalAcc">0%</b></div>
+      <div class="stat">平均反应<b id="finalAvg">--</b></div>
+      <div class="stat">最佳反应<b id="finalBest">--</b></div>
+    </div>
+    <button id="againBtn">再来一局</button>
+  </div>
+</div>
+
+<script>
+(function(){
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const home=document.getElementById("home");
+const result=document.getElementById("result");
+const startBtn=document.getElementById("startBtn");
+const againBtn=document.getElementById("againBtn");
+const sensInput=document.getElementById("sens");
+const sensText=document.getElementById("sensText");
+
+let W=0,H=0,DPR=1,run=false,last=0,sens=1;
+let aim={x:0,y:0};
+let target=null;
+let stars=[];
+let state=null;
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=W*DPR; canvas.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  aim.x=W/2; aim.y=H/2;
+  stars=Array.from({length:Math.min(220,Math.max(80,W*H/8500))},()=>({
+    x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+0.3,v:0.12+Math.random()*0.42,t:Math.random()*10
+  }));
+}
+function setSens(v){
+  sens=Math.max(0.2,Math.min(3,Number(v)||1));
+  sensInput.value=sens;
+  sensText.textContent=sens.toFixed(2)+"x";
+  try{localStorage.setItem("flickAimSensitivity",sens)}catch(e){}
+}
+function newTarget(){
+  const margin=70;
+  const radius=Math.max(13,36-state.score*0.18);
+  target={
+    x:margin+Math.random()*(W-margin*2),
+    y:105+Math.random()*Math.max(1,H-220),
+    r:radius,
+    born:performance.now(),
+    life:Math.max(0.48,1.25-state.score*0.012)
+  };
+}
+function start(){
+  state={time:60,score:0,shots:0,hits:0,totalRt:0,countRt:0,bestRt:1e9};
+  run=true;
+  home.classList.add("hide");
+  result.classList.add("hide");
+  aim.x=W/2; aim.y=H/2;
+  newTarget();
+  last=performance.now();
+  try{canvas.requestPointerLock && canvas.requestPointerLock()}catch(e){}
+  requestAnimationFrame(loop);
+}
+function loop(now){
+  if(!run)return;
+  const dt=Math.min(0.033,(now-last)/1000||0);
+  last=now;
+  state.time-=dt;
+  if(state.time<=0){finish();return}
+  if(target && performance.now()-target.born>target.life*1000){
+    state.shots++;
+    resetAim();
+    newTarget();
+  }
+  draw(now);
+  requestAnimationFrame(loop);
+}
+function resetAim(){aim.x=W/2; aim.y=H/2}
+function shoot(){
+  if(!run||!target)return;
+  state.shots++;
+  const d=Math.hypot(aim.x-target.x,aim.y-target.y);
+  if(d<=target.r){
+    const rt=performance.now()-target.born;
+    state.hits++;
+    state.totalRt+=rt;
+    state.countRt++;
+    state.bestRt=Math.min(state.bestRt,rt);
+    state.score += rt<350 ? 3 : rt<650 ? 2 : 1;
+    flashText(target.x,target.y,"HIT "+Math.round(rt)+"ms",rt<350);
+  }else{
+    flashText(aim.x,aim.y,"MISS",false);
+  }
+  resetAim();
+  newTarget();
+}
+function draw(now){
+  ctx.clearRect(0,0,W,H);
+  const bg=ctx.createRadialGradient(W/2,H*.35,0,W/2,H/2,Math.max(W,H)*.8);
+  bg.addColorStop(0,"rgba(20,58,136,.48)");
+  bg.addColorStop(1,"rgba(0,0,0,1)");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  for(const s of stars){
+    s.y+=s.v; s.t+=0.03;
+    if(s.y>H+5){s.y=-5;s.x=Math.random()*W}
+    ctx.beginPath();
+    ctx.fillStyle="rgba(160,245,255,"+(0.3+Math.abs(Math.sin(s.t))*0.45)+")";
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  const horizon=H*0.58;
+  ctx.strokeStyle="rgba(25,247,255,.14)";
+  for(let i=0;i<16;i++){
+    const y=horizon+Math.pow(i/15,1.7)*H*.42;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  for(let i=-12;i<=12;i++){
+    ctx.beginPath(); ctx.moveTo(W/2,horizon); ctx.lineTo(W/2+i*W*.11,H); ctx.stroke();
+  }
+
+  if(target){
+    const left=Math.max(0,1-(performance.now()-target.born)/(target.life*1000));
+    const r=target.r*(1+Math.sin(now*.012)*.06);
+    const glow=ctx.createRadialGradient(target.x,target.y,0,target.x,target.y,r*3.2);
+    glow.addColorStop(0,"rgba(255,170,185,.95)");
+    glow.addColorStop(.35,"rgba(255,77,109,.36)");
+    glow.addColorStop(1,"rgba(255,77,109,0)");
+    ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(target.x,target.y,r*3.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#ff4d6d"; ctx.beginPath(); ctx.arc(target.x,target.y,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(target.x,target.y,r*.52,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle=left>.35?"#55ff9e":"#ff4d6d";
+    ctx.fillRect(target.x-r,target.y-r-12,2*r*left,5);
+  }
+
+  ctx.strokeStyle="#9dffff"; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(aim.x-28,aim.y); ctx.lineTo(aim.x-8,aim.y);
+  ctx.moveTo(aim.x+8,aim.y); ctx.lineTo(aim.x+28,aim.y);
+  ctx.moveTo(aim.x,aim.y-28); ctx.lineTo(aim.x,aim.y-8);
+  ctx.moveTo(aim.x,aim.y+8); ctx.lineTo(aim.x,aim.y+28);
+  ctx.stroke();
+  ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(aim.x,aim.y,3,0,Math.PI*2); ctx.fill();
+
+  const acc=state.shots?Math.round(state.hits/state.shots*100):100;
+  const avg=state.countRt?Math.round(state.totalRt/state.countRt):0;
+  ctx.fillStyle="#fff"; ctx.font="18px Arial";
+  ctx.fillText("Time "+Math.max(0,state.time).toFixed(1),16,28);
+  ctx.fillText("Score "+state.score,16,54);
+  ctx.fillText("Accuracy "+acc+"%",16,80);
+  ctx.fillText("Avg "+(avg?avg+"ms":"--"),16,106);
+  ctx.fillText("Best "+(state.bestRt<1e9?Math.round(state.bestRt)+"ms":"--"),16,132);
+  ctx.fillText("Sens "+sens.toFixed(2)+"x",16,158);
+}
+function flashText(x,y,text,good){
+  const el=document.createElement("div");
+  el.textContent=text;
+  el.style.cssText="position:fixed;z-index:20;left:"+x+"px;top:"+y+"px;transform:translate(-50%,-50%);font-weight:900;font-size:20px;color:"+(good?"#ffd166":"#ff8095")+";text-shadow:0 0 14px currentColor;pointer-events:none";
+  document.body.appendChild(el);
+  let k=0;
+  const timer=setInterval(()=>{
+    k+=0.05; el.style.opacity=1-k; el.style.top=(y-k*80)+"px";
+    if(k>=1){clearInterval(timer);el.remove()}
+  },30);
+}
+function finish(){
+  run=false;
+  try{document.exitPointerLock && document.exitPointerLock()}catch(e){}
+  const acc=state.shots?Math.round(state.hits/state.shots*100):0;
+  const avg=state.countRt?Math.round(state.totalRt/state.countRt):0;
+  document.getElementById("finalScore").textContent=state.score;
+  document.getElementById("finalAcc").textContent=acc+"%";
+  document.getElementById("finalAvg").textContent=avg?avg+"ms":"--";
+  document.getElementById("finalBest").textContent=state.bestRt<1e9?Math.round(state.bestRt)+"ms":"--";
+  document.getElementById("comment").textContent=acc>=70&&avg&&avg<520?"不错，一次定位速度和稳定性都可以。":"重点练：看到目标后一次甩到中心再点，减少二次修正。";
+  result.classList.remove("hide");
+}
+
+canvas.addEventListener("mousemove",e=>{
+  if(!run)return;
+  const dx=e.movementX||0;
+  const dy=e.movementY||0;
+  aim.x=Math.max(0,Math.min(W,aim.x+dx*sens));
+  aim.y=Math.max(0,Math.min(H,aim.y+dy*sens));
+});
+canvas.addEventListener("mousedown",()=>{
+  if(run){
+    try{canvas.requestPointerLock && canvas.requestPointerLock()}catch(e){}
+    shoot();
+  }
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="[")setSens(sens-.05);
+  if(e.key==="]")setSens(sens+.05);
+  if(e.key.toLowerCase()==="r")start();
+});
+startBtn.onclick=start;
+againBtn.onclick=start;
+sensInput.oninput=e=>setSens(e.target.value);
+window.addEventListener("resize",resize);
+resize();
+setSens(localStorage.getItem("flickAimSensitivity")||1);
+draw(0);
+})();
+</script>
+</body>
+</html>
