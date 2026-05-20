@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no">
+<title>AI Hand Particle Interaction</title>
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,sans-serif;touch-action:none}
+#video,#canvas{position:fixed;top:0;left:0;width:100vw;height:100vh}
+#video{object-fit:cover;transform:scaleX(-1);opacity:.16}
+#canvas{z-index:2}
+.ui{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9;color:#fff;background:rgba(0,0,0,.45);padding:12px 18px;border-radius:16px;backdrop-filter:blur(12px);font-size:14px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="ui">iPhone 手势粒子交互<br>张开手掌控制粒子流场 ✋</div>
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
+<script type="module">
+import {HandLandmarker,FilesetResolver} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let w=innerWidth,h=innerHeight;
+canvas.width=w;canvas.height=h;
+addEventListener('resize',()=>{w=innerWidth;h=innerHeight;canvas.width=w;canvas.height=h;});
+async function camera(){const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();}
+const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+const detector=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'},runningMode:'VIDEO',numHands:2});
+await camera();
+class Particle{
+constructor(){this.reset()}
+reset(){this.x=Math.random()*w;this.y=Math.random()*h;this.vx=(Math.random()-.5)*2;this.vy=(Math.random()-.5)*2;this.s=Math.random()*2.5+1}
+update(hands){for(const hand of hands){for(const p of hand){const hx=w-p.x*w;const hy=p.y*h;const dx=hx-this.x;const dy=hy-this.y;const dist=Math.hypot(dx,dy);if(dist<180){const force=(180-dist)/180;this.vx-=dx*.0012*force;this.vy-=dy*.0012*force}}}this.x+=this.vx;this.y+=this.vy;this.vx*=.985;this.vy*=.985;if(this.x<0||this.x>w)this.vx*=-1;if(this.y<0||this.y>h)this.vy*=-1}
+draw(){const speed=Math.hypot(this.vx,this.vy);const hue=180+speed*120;ctx.beginPath();ctx.fillStyle=`hsla(${hue},100%,65%,0.9)`;ctx.arc(this.x,this.y,this.s,0,Math.PI*2);ctx.fill()}}
+const particles=[];for(let i=0;i<1000;i++)particles.push(new Particle());
+let last=-1;
+function animate(){ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(0,0,w,h);let hands=[];if(video.currentTime!==last){last=video.currentTime;const result=detector.detectForVideo(video,performance.now());hands=result.landmarks||[]}for(const p of particles){p.update(hands);p.draw()}requestAnimationFrame(animate)}
+animate();
+</script>
+</body>
+</html>
