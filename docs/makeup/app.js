@@ -33,7 +33,39 @@ const creatorFocusOverrides={
 };
 function makeDirectoryCreator(name,platform,i){const [focus,bestFor]=creatorFocusOverrides[name]||creatorFocusCycles[i%creatorFocusCycles.length];const search=platform==='抖音'?`https://www.douyin.com/search/${encodeURIComponent(name)}`:`https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(name)}`;return{id:`${platform==='抖音'?'dy':'xhs'}-${i+1}-${encodeURIComponent(name)}`,name,platforms:[platform],handle:`${platform}搜索：${name}`,region:'中国',focus,bestFor,url:search,source:`${platform}公开搜索入口；账号名称与内容以平台实时结果为准`}}
 async function loadData(){try{const rs=await Promise.all(['./data/templates.json','./data/creators.json','./data/creators-cn.json'].map(u=>fetch(u)));if(rs.some(r=>!r.ok))throw 0;const [t,base,cn]=await Promise.all(rs.map(r=>r.json()));templates=t;creators=[...base,...cn.douyin.map((n,i)=>makeDirectoryCreator(n,'抖音',i)),...cn.xiaohongshu.map((n,i)=>makeDirectoryCreator(n,'小红书',i))];renderTemplateFilters();renderTemplates();renderPlatformFilters();renderCreators()}catch{toast('网站数据加载失败，请刷新页面')}}
-async function initModel(){if(faceLandmarker)return true;if(!navigator.onLine){setNet('bad','当前离线');return false}try{setNet('','加载在线模型');const v=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');const f=await v.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');faceLandmarker=await v.FaceLandmarker.createFromOptions(f,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',delegate:'GPU'},runningMode:'IMAGE',numFaces:1,minFaceDetectionConfidence:.55,minFacePresenceConfidence:.55});setNet('ok','模型已连接');return true}catch(e){console.error(e);setNet('bad','模型连接失败');return false}}
+async function initModel(){
+  if(faceLandmarker)return true;
+  if(!navigator.onLine){setNet('bad','当前离线');return false}
+  const routes=[
+    {
+      name:'国内镜像',
+      module:'https://cdn.jsdmirror.com/npm/@mediapipe/tasks-vision@0.10.14/+esm',
+      wasm:'https://cdn.jsdmirror.com/npm/@mediapipe/tasks-vision@0.10.14/wasm',
+      model:'https://cdn.jsdmirror.com/gh/Zam-Imam/Gaze-Tracking-MediaPipe@main/face_landmarker.task'
+    },
+    {
+      name:'国际备用线路',
+      module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm',
+      wasm:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
+      model:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task'
+    }
+  ];
+  for(const route of routes){
+    try{
+      setNet('',`正在连接${route.name}`);
+      const v=await import(route.module);
+      const f=await v.FilesetResolver.forVisionTasks(route.wasm);
+      faceLandmarker=await v.FaceLandmarker.createFromOptions(f,{baseOptions:{modelAssetPath:route.model,delegate:'GPU'},runningMode:'IMAGE',numFaces:1,minFaceDetectionConfidence:.55,minFacePresenceConfidence:.55});
+      setNet('ok',`${route.name}已连接`);
+      return true;
+    }catch(e){
+      console.warn(`${route.name}加载失败`,e);
+      faceLandmarker=null;
+    }
+  }
+  setNet('bad','模型线路均连接失败');
+  return false;
+}
 loadData();initModel();window.addEventListener('online',initModel);window.addEventListener('offline',()=>setNet('bad','当前离线'));
 $$('[data-page]').forEach(b=>b.onclick=()=>{$$('[data-page]').forEach(x=>x.classList.remove('active'));b.classList.add('active');['analysis','templates','creators'].forEach(p=>$(`#${p}Page`).classList.toggle('hidden',p!==b.dataset.page));scrollTo({top:0,behavior:'smooth'})});
 function setImage(file){if(!file?.type.startsWith('image/'))return toast('请选择图片文件');if(file.size>15*1024*1024)return toast('图片请小于 15MB');imageFile=file;const u=URL.createObjectURL(file);$('#preview').onload=()=>{URL.revokeObjectURL(u);resizeCanvas();clearCanvas()};$('#preview').src=u;$('#fileName').textContent=file.name||'camera.jpg';$('#fileSize').textContent=(file.size/1048576).toFixed(2)+' MB';$('#dropzone').classList.add('hidden');$('#analysisBox').classList.remove('hidden');$('#recommendations').classList.add('hidden');resetMetrics()}
@@ -53,5 +85,5 @@ function renderTemplateFilters(){const cats=['全部',...new Set(templates.map(x
 function renderTemplates(){const q=$('#templateSearch').value.trim().toLowerCase(),cat=$('[data-category].active')?.dataset.category||'全部',data=templates.filter(t=>(cat==='全部'||t.category===cat)&&(!q||(t.name+t.tags.join('')+t.desc).toLowerCase().includes(q)));const root=$('#templateCards');root.innerHTML=data.map((t,i)=>card(t,i)).join('');bindDetails(root)}$('#templateSearch').oninput=renderTemplates;
 function renderPlatformFilters(){const ps=['全部','YouTube','Instagram','TikTok','抖音','小红书'];$('#platformFilters').innerHTML=ps.map((x,i)=>{const n=x==='全部'?creators.length:creators.filter(c=>c.platforms.includes(x)).length;return`<button class="filter ${i?'':'active'}" data-platform="${x}">${x} ${n}</button>`}).join('');$$('[data-platform]').forEach(b=>b.onclick=()=>{$$('[data-platform]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCreators()})}
 const initials=n=>n.replace(/[^A-Za-z\u4e00-\u9fa5]/g,'').slice(0,2).toUpperCase()||'MU';
-function renderCreators(){const q=$('#creatorSearch').value.trim().toLowerCase(),p=$('[data-platform].active')?.dataset.platform||'全部',data=creators.filter(c=>(p==='全部'||c.platforms.includes(p))&&(!q||(c.name+c.handle+c.focus.join('')+c.bestFor).toLowerCase().includes(q)));$('#creatorCount').textContent=creators.length;$('#creatorCards').innerHTML=data.map(c=>`<article class="creator-card"><div class="creator-top"><div class="avatar">${initials(c.name)}</div><div><div class="creator-name">${c.name}</div><div class="handle">${c.handle}</div></div></div><div class="platforms">${c.platforms.map(x=>`<span class="platform">${x}</span>`).join('')}</div><p><b>内容：</b>${c.focus.join(' · ')}</p><p><b>适合学习：</b>${c.bestFor}</p><div class="source">${c.region} · ${c.source}</div><a class="creator-link" target="_blank" rel="noopener noreferrer" href="${c.url}">打开平台主页 / 搜索</a></article>`).join('')}$('#creatorSearch').oninput=renderCreators;
+function renderCreators(){const q=$('#creatorSearch').value.trim().toLowerCase(),p=$('[data-platform].active')?.dataset.platform||'全部',data=creators.filter(c=>(p==='全部'||c.platforms.includes(p))&&(!q||(c.name+c.handle+c.focus.join('')+c.bestFor).toLowerCase().includes(q)));$('#creatorCount').textContent=creators.length;$('#creatorCards').innerHTML=data.map(c=>`<article class="creator-card"><div class="creator-top"><div class="avatar">${initials(c.name)}</div><div><div class="creator-name">${c.name}</div><div class="handle">${c.handle}</div></div></div><div class="platforms">${c.platforms.map(x=>`<span class="platform">${x}</span>`).join('')}</div><p><b>内容：</b>${c.focus.join(' · ')}</p><p><b>适合学习：</b>${c.bestFor}</p><div class="source">${c.region} · ${c.source}</div><a class="creator-link" target="_blank" rel="noopener noreferrer" href="${c.url}">打开原平台资料</a></article>`).join('')}$('#creatorSearch').oninput=renderCreators;
 $$('.dialog-close').forEach(b=>b.onclick=()=>b.closest('dialog').close());$('#cameraBtn').onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});$('#camera').srcObject=stream;$('#cameraDialog').showModal()}catch{toast('请允许摄像头权限，或直接上传照片')}};$('#captureBtn').onclick=()=>{const v=$('#camera'),c=$('#cameraCanvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);c.toBlob(b=>{setImage(new File([b],'camera.jpg',{type:'image/jpeg'}));stream?.getTracks().forEach(t=>t.stop());$('#cameraDialog').close()},'image/jpeg',.92)};
