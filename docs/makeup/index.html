@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#173f34">
-<meta name="description" content="在线面部比例分析、妆容模板与YouTube、Instagram、TikTok、抖音与小红书美妆博主学习目录。">
+<meta name="description" content="在线面部比例分析、妆容模板与YouTube、Instagram、TikTok、抖音、小红书美妆博主学习目录。">
 <title>妆容参照｜AI测脸与博主库</title>
 <link rel="stylesheet" href="./styles.css">
 </head>
@@ -71,15 +71,16 @@
     <div class="stats"><div><b id="creatorCount">118</b><span>公开博主条目</span></div><div><b>5</b><span>主要内容平台</span></div><div><b>50 / 50</b><span>抖音 / 小红书</span></div></div>
     <div class="toolbar"><input id="creatorSearch" class="search" placeholder="搜索：底妆、眼妆、成熟肌、修容……"><div id="platformFilters" class="filters"></div></div>
     <div id="creatorCards" class="creator-grid"></div>
-    <div class="data-note">资料仅包含公开账号入口、内容方向和适合学习的技术，不复制头像、视频、课程或付费内容，也不展示容易过时的粉丝数。新增抖音和小红书条目使用平台搜索入口，账号可能更名、重名或改变归属，请以打开后的平台实时结果为准。</div>
+    <div class="data-note">小红书卡片会优先唤起 App 并自动搜索该博主的独立关键词；未安装 App 时使用网页搜索兜底。资料仅包含公开账号入口、内容方向和适合学习的技术，不复制头像、视频、课程或付费内容，也不展示容易过时的粉丝数。账号可能更名、重名或改变归属，请以平台实时结果为准。</div>
   </section>
 </main>
 
-<footer>照片默认只在当前浏览器中参与计算；模型文件由 CDN 在线加载。创作者条目不代表平台或创作者背书。</footer>
+<footer>照片默认只在当前浏览器中参与计算；自拍预览与成片均保持水平镜像。模型文件由 CDN 在线加载。创作者条目不代表平台或创作者背书。</footer>
 
 <dialog id="detailDialog"><button class="dialog-close" aria-label="关闭">×</button><div id="detail"></div></dialog>
-<dialog id="cameraDialog"><button class="dialog-close" aria-label="关闭">×</button><h2>拍摄正脸照片</h2><p>摄像头需要 HTTPS 权限。</p><video id="camera" autoplay muted playsinline></video><button id="captureBtn" class="btn primary full">拍摄并使用</button><canvas id="cameraCanvas" hidden></canvas></dialog>
+<dialog id="cameraDialog"><button class="dialog-close" aria-label="关闭">×</button><h2>拍摄正脸照片</h2><p>摄像头需要 HTTPS 权限；预览与最终照片均保持自拍镜像。</p><video id="camera" autoplay muted playsinline></video><button id="captureBtn" class="btn primary full">拍摄并使用</button><canvas id="cameraCanvas" hidden></canvas></dialog>
 <div id="toast" class="toast"></div>
 <script type="module" src="./app.js"></script>
+<script type="module" src="./fixes.js"></script>
 </body>
 </html>
