@@ -4,7 +4,35 @@ let templates=[],creators=[],faceLandmarker=null,imageFile=null,stream=null,curr
 const metrics=$('#metrics');metrics.innerHTML=metricDefs.map(([k,n])=>`<div class="metric"><span>${n}</span><b data-metric="${k}">—</b></div>`).join('');
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2200)}
 function setNet(type,text){$('#netDot').className=type;$('#netText').textContent=text}
-async function loadData(){try{const [a,b]=await Promise.all([fetch('./data/templates.json'),fetch('./data/creators.json')]);if(!a.ok||!b.ok)throw 0;templates=await a.json();creators=await b.json();renderTemplateFilters();renderTemplates();renderPlatformFilters();renderCreators()}catch{toast('网站数据加载失败，请刷新页面')}}
+const creatorFocusCycles=[
+  [['日常妆容','新手教程','平价好物'],'适合学习日常可复制妆容和新手步骤'],
+  [['底妆测评','持妆技巧','产品避坑'],'适合比较底妆表现、持妆方法和产品选择'],
+  [['眼妆教程','脸型修饰','上镜妆'],'适合学习眼型调整、修容和镜头妆结构'],
+  [['风格仿妆','色彩搭配','妆容灵感'],'适合寻找风格化妆容与配色灵感'],
+  [['护肤彩妆','成分解析','消费建议'],'适合补充产品功效、成分与消费判断'],
+  [['明星妆拆解','修容高光','氛围妆'],'适合学习明星妆拆解和面部视觉重心调整']
+];
+const creatorFocusOverrides={
+  '马宝儿':[['实用妆教','日常妆容','高互动教程'],'适合跟练快速、实用的日常妆容'],
+  '陈圆圆超可爱':[['日常妆容','平价好物','亲和妆感'],'适合学习亲和、易复制的日常美妆'],
+  '小团圆剧场':[['创意仿妆','主题妆容','剧情表达'],'适合寻找创意仿妆与主题妆容灵感'],
+  '灵霖七':[['古风妆容','国货美妆','东方审美'],'适合学习古风与东方妆容表达'],
+  '九歌':[['欧美妆','轮廓妆','眼妆'],'适合学习高轮廓感和欧美眼妆'],
+  '氧化菊':[['彩妆测评','护肤科普','产品对比'],'适合了解彩妆产品表现和使用差异'],
+  '拜托辣油':[['油皮底妆','控油持妆','产品测评'],'适合油皮用户学习控油与持妆'],
+  '李佳琦Austin':[['口红试色','产品测评','选品建议'],'适合查看热门彩妆、色号和产品卖点'],
+  '骆王宇':[['护肤成分','产品测评','消费避坑'],'适合学习护肤产品逻辑和消费避坑'],
+  '豆豆Babe':[['眼妆','仿妆','高完成度全妆'],'适合学习高完成度眼妆和全妆流程'],
+  '仙姆SamChak':[['眼妆技巧','明星妆容','专业妆教'],'适合学习精细眼妆和专业化妆方法'],
+  '毛戈平':[['东方骨相','光影修容','专业教育'],'适合学习东方骨相与光影塑造'],
+  '唐毅TangYi':[['中国妆','粉彩妆','明星妆教'],'适合学习东方审美和专业明星妆容'],
+  '易梦玲':[['氛围妆','镜头表现','妆容灵感'],'适合观察上镜氛围、色彩和整体造型'],
+  'Angel Z':[['熟龄护肤','抗衰护理','生活方式'],'适合熟龄肌护肤和状态管理参考'],
+  '橙子阿姨':[['熟龄护肤','气色管理','生活方式'],'适合查看熟龄肌护理和气色管理内容'],
+  '许医生的变美日记':[['皮肤科普','科学护肤','变美建议'],'适合补充皮肤与科学护肤知识']
+};
+function makeDirectoryCreator(name,platform,i){const [focus,bestFor]=creatorFocusOverrides[name]||creatorFocusCycles[i%creatorFocusCycles.length];const search=platform==='抖音'?`https://www.douyin.com/search/${encodeURIComponent(name)}`:`https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(name)}`;return{id:`${platform==='抖音'?'dy':'xhs'}-${i+1}-${encodeURIComponent(name)}`,name,platforms:[platform],handle:`${platform}搜索：${name}`,region:'中国',focus,bestFor,url:search,source:`${platform}公开搜索入口；账号名称与内容以平台实时结果为准`}}
+async function loadData(){try{const rs=await Promise.all(['./data/templates.json','./data/creators.json','./data/creators-cn.json'].map(u=>fetch(u)));if(rs.some(r=>!r.ok))throw 0;const [t,base,cn]=await Promise.all(rs.map(r=>r.json()));templates=t;creators=[...base,...cn.douyin.map((n,i)=>makeDirectoryCreator(n,'抖音',i)),...cn.xiaohongshu.map((n,i)=>makeDirectoryCreator(n,'小红书',i))];renderTemplateFilters();renderTemplates();renderPlatformFilters();renderCreators()}catch{toast('网站数据加载失败，请刷新页面')}}
 async function initModel(){if(faceLandmarker)return true;if(!navigator.onLine){setNet('bad','当前离线');return false}try{setNet('','加载在线模型');const v=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');const f=await v.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');faceLandmarker=await v.FaceLandmarker.createFromOptions(f,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',delegate:'GPU'},runningMode:'IMAGE',numFaces:1,minFaceDetectionConfidence:.55,minFacePresenceConfidence:.55});setNet('ok','模型已连接');return true}catch(e){console.error(e);setNet('bad','模型连接失败');return false}}
 loadData();initModel();window.addEventListener('online',initModel);window.addEventListener('offline',()=>setNet('bad','当前离线'));
 $$('[data-page]').forEach(b=>b.onclick=()=>{$$('[data-page]').forEach(x=>x.classList.remove('active'));b.classList.add('active');['analysis','templates','creators'].forEach(p=>$(`#${p}Page`).classList.toggle('hidden',p!==b.dataset.page));scrollTo({top:0,behavior:'smooth'})});
@@ -23,7 +51,7 @@ function bindDetails(root){root.querySelectorAll('[data-detail]').forEach(b=>b.o
 function renderResults(){const root=$('#resultCards');root.innerHTML=current.slice(0,6).map((t,i)=>card(t,i,true)).join('');bindDetails(root)}
 function renderTemplateFilters(){const cats=['全部',...new Set(templates.map(x=>x.category))];$('#categoryFilters').innerHTML=cats.map((x,i)=>`<button class="filter ${i?'':'active'}" data-category="${x}">${x}</button>`).join('');$$('[data-category]').forEach(b=>b.onclick=()=>{$$('[data-category]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderTemplates()})}
 function renderTemplates(){const q=$('#templateSearch').value.trim().toLowerCase(),cat=$('[data-category].active')?.dataset.category||'全部',data=templates.filter(t=>(cat==='全部'||t.category===cat)&&(!q||(t.name+t.tags.join('')+t.desc).toLowerCase().includes(q)));const root=$('#templateCards');root.innerHTML=data.map((t,i)=>card(t,i)).join('');bindDetails(root)}$('#templateSearch').oninput=renderTemplates;
-function renderPlatformFilters(){const ps=['全部','YouTube','Instagram','TikTok','抖音'];$('#platformFilters').innerHTML=ps.map((x,i)=>`<button class="filter ${i?'':'active'}" data-platform="${x}">${x}</button>`).join('');$$('[data-platform]').forEach(b=>b.onclick=()=>{$$('[data-platform]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCreators()})}
+function renderPlatformFilters(){const ps=['全部','YouTube','Instagram','TikTok','抖音','小红书'];$('#platformFilters').innerHTML=ps.map((x,i)=>{const n=x==='全部'?creators.length:creators.filter(c=>c.platforms.includes(x)).length;return`<button class="filter ${i?'':'active'}" data-platform="${x}">${x} ${n}</button>`}).join('');$$('[data-platform]').forEach(b=>b.onclick=()=>{$$('[data-platform]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCreators()})}
 const initials=n=>n.replace(/[^A-Za-z\u4e00-\u9fa5]/g,'').slice(0,2).toUpperCase()||'MU';
-function renderCreators(){const q=$('#creatorSearch').value.trim().toLowerCase(),p=$('[data-platform].active')?.dataset.platform||'全部',data=creators.filter(c=>(p==='全部'||c.platforms.includes(p))&&(!q||(c.name+c.handle+c.focus.join('')+c.bestFor).toLowerCase().includes(q)));$('#creatorCount').textContent=creators.length;$('#creatorCards').innerHTML=data.map(c=>`<article class="creator-card"><div class="creator-top"><div class="avatar">${initials(c.name)}</div><div><div class="creator-name">${c.name}</div><div class="handle">${c.handle}</div></div></div><div class="platforms">${c.platforms.map(x=>`<span class="platform">${x}</span>`).join('')}</div><p><b>内容：</b>${c.focus.join(' · ')}</p><p><b>适合学习：</b>${c.bestFor}</p><div class="source">${c.region} · ${c.source}</div><a class="creator-link" target="_blank" rel="noopener noreferrer" href="${c.url}">打开原平台资料</a></article>`).join('')}$('#creatorSearch').oninput=renderCreators;
+function renderCreators(){const q=$('#creatorSearch').value.trim().toLowerCase(),p=$('[data-platform].active')?.dataset.platform||'全部',data=creators.filter(c=>(p==='全部'||c.platforms.includes(p))&&(!q||(c.name+c.handle+c.focus.join('')+c.bestFor).toLowerCase().includes(q)));$('#creatorCount').textContent=creators.length;$('#creatorCards').innerHTML=data.map(c=>`<article class="creator-card"><div class="creator-top"><div class="avatar">${initials(c.name)}</div><div><div class="creator-name">${c.name}</div><div class="handle">${c.handle}</div></div></div><div class="platforms">${c.platforms.map(x=>`<span class="platform">${x}</span>`).join('')}</div><p><b>内容：</b>${c.focus.join(' · ')}</p><p><b>适合学习：</b>${c.bestFor}</p><div class="source">${c.region} · ${c.source}</div><a class="creator-link" target="_blank" rel="noopener noreferrer" href="${c.url}">打开平台主页 / 搜索</a></article>`).join('')}$('#creatorSearch').oninput=renderCreators;
 $$('.dialog-close').forEach(b=>b.onclick=()=>b.closest('dialog').close());$('#cameraBtn').onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});$('#camera').srcObject=stream;$('#cameraDialog').showModal()}catch{toast('请允许摄像头权限，或直接上传照片')}};$('#captureBtn').onclick=()=>{const v=$('#camera'),c=$('#cameraCanvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);c.toBlob(b=>{setImage(new File([b],'camera.jpg',{type:'image/jpeg'}));stream?.getTracks().forEach(t=>t.stop());$('#cameraDialog').close()},'image/jpeg',.92)};
