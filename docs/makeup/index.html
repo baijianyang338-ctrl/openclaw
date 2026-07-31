@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#173f34">
-<meta name="description" content="在线面部比例分析、妆容模板与YouTube、Instagram、TikTok、抖音、小红书美妆博主学习目录。">
+<meta name="description" content="在线面部比例分析、20套妆容模板与跨平台美妆博主学习目录。">
 <title>妆容参照｜AI测脸与博主库</title>
-<link rel="stylesheet" href="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/styles.css?v=20260801-0116">
+<link rel="stylesheet" href="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/styles.css?v=20260801-0132">
 <script>
   window.__MAKEUP_ASSET_BASE__='https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/';
   const __makeupFetch=window.fetch.bind(window);
   window.fetch=(input,init)=>{
     if(typeof input==='string'&&input.startsWith('./data/')){
-      input=window.__MAKEUP_ASSET_BASE__+input.slice(2)+'?v=20260801-0116';
+      input=window.__MAKEUP_ASSET_BASE__+input.slice(2)+'?v=20260801-0132';
     }
     return __makeupFetch(input,init);
   };
@@ -70,18 +70,18 @@
 </main>
 
 <main id="templatesPage" class="page hidden">
-  <section class="wrap section page-intro"><p class="eyebrow">MAKEUP TEMPLATE LIBRARY</p><h1>20 套可搜索的<br><em>妆容模板</em></h1><p class="lead">覆盖日常、眼妆、脸型、底妆、上镜和场景需求。每套模板包含复刻步骤和避坑提示。</p>
+  <section class="wrap section page-intro"><p class="eyebrow">MAKEUP TEMPLATE LIBRARY</p><h1>20 套可搜索的<br><em>妆容模板</em></h1><p class="lead">20 套模板会全部罗列出来，每套包含标签、说明、复刻步骤和避坑提示。</p>
     <div class="toolbar"><input id="templateSearch" class="search" placeholder="搜索：单眼皮、长脸、新娘、职场……"><div id="categoryFilters" class="filters"></div></div>
     <div id="templateCards" class="grid"></div>
   </section>
 </main>
 
 <main id="creatorsPage" class="page hidden">
-  <section class="wrap section page-intro"><p class="eyebrow">CREATOR DIRECTORY</p><h1>跨平台学习<br><em>化妆博主库</em></h1><p class="lead">整理 YouTube、Instagram、TikTok、抖音与小红书的公开创作者入口；抖音和小红书各收录 50 位检索条目。</p>
+  <section class="wrap section page-intro"><p class="eyebrow">CREATOR DIRECTORY</p><h1>跨平台学习<br><em>化妆博主库</em></h1><p class="lead">YouTube、Instagram、TikTok、抖音和小红书条目会全部罗列，并支持按姓名、平台和内容方向搜索。</p>
     <div class="stats"><div><b id="creatorCount">118</b><span>公开博主条目</span></div><div><b>5</b><span>主要内容平台</span></div><div><b>50 / 50</b><span>抖音 / 小红书</span></div></div>
-    <div class="toolbar"><input id="creatorSearch" class="search" placeholder="搜索：底妆、眼妆、成熟肌、修容……"><div id="platformFilters" class="filters"></div></div>
+    <div class="toolbar"><input id="creatorSearch" class="search" placeholder="搜索：博主名、底妆、眼妆、平台……"><div id="platformFilters" class="filters"></div></div>
     <div id="creatorCards" class="creator-grid"></div>
-    <div class="data-note">小红书卡片会优先唤起 App 并自动搜索该博主的独立关键词；未安装 App 时使用网页搜索兜底。资料仅包含公开账号入口、内容方向和适合学习的技术，不复制头像、视频、课程或付费内容，也不展示容易过时的粉丝数。账号可能更名、重名或改变归属，请以平台实时结果为准。</div>
+    <div class="data-note">有稳定公开主页的条目直接打开主页；未公开稳定用户ID的抖音或小红书条目使用该博主的独立关键词进入平台精准搜索，避免跳转到失效页面。账号可能更名或重名，请根据头像、简介和作品确认本人。</div>
   </section>
 </main>
 
@@ -105,7 +105,8 @@
     });
   });
 </script>
-<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/app.js?v=20260801-0116"></script>
-<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/fixes.js?v=20260801-0116"></script>
+<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/catalog-static.js?v=20260801-0132"></script>
+<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/app.js?v=20260801-0132"></script>
+<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/fixes.js?v=20260801-0132"></script>
 </body>
 </html>
