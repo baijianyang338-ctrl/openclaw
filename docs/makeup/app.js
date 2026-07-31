@@ -39,13 +39,13 @@ async function initModel(){
   const routes=[
     {
       name:'国内镜像',
-      module:'https://cdn.jsdmirror.com/npm/@mediapipe/tasks-vision@0.10.14/+esm',
+      module:'https://cdn.jsdmirror.com/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
       wasm:'https://cdn.jsdmirror.com/npm/@mediapipe/tasks-vision@0.10.14/wasm',
       model:'https://cdn.jsdmirror.com/gh/Zam-Imam/Gaze-Tracking-MediaPipe@main/face_landmarker.task'
     },
     {
       name:'国际备用线路',
-      module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm',
+      module:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
       wasm:'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
       model:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task'
     }
@@ -53,7 +53,8 @@ async function initModel(){
   for(const route of routes){
     try{
       setNet('',`正在连接${route.name}`);
-      const v=await import(route.module);
+      const imported=await import(route.module);
+      const v=imported.default||imported;
       const f=await v.FilesetResolver.forVisionTasks(route.wasm);
       faceLandmarker=await v.FaceLandmarker.createFromOptions(f,{baseOptions:{modelAssetPath:route.model,delegate:'GPU'},runningMode:'IMAGE',numFaces:1,minFaceDetectionConfidence:.55,minFacePresenceConfidence:.55});
       setNet('ok',`${route.name}已连接`);
