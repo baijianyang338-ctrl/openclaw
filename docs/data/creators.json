@@ -1,0 +1,439 @@
+[
+  {
+    "id": "lisa",
+    "name": "Lisa Eldridge",
+    "platforms": [
+      "YouTube",
+      "Instagram"
+    ],
+    "handle": "@LisaEldridge",
+    "region": "英国",
+    "focus": [
+      "专业底妆",
+      "经典眼线",
+      "红唇",
+      "成熟女性妆容"
+    ],
+    "bestFor": "系统学习专业化妆逻辑与可穿戴妆容",
+    "url": "https://www.lisaeldridge.com/pages/my-world",
+    "source": "官方个人网站"
+  },
+  {
+    "id": "nikkie",
+    "name": "NikkieTutorials",
+    "platforms": [
+      "YouTube",
+      "Instagram",
+      "TikTok"
+    ],
+    "handle": "@nikkietutorials",
+    "region": "荷兰",
+    "focus": [
+      "高遮瑕底妆",
+      "高对比眼妆",
+      "创意彩妆"
+    ],
+    "bestFor": "学习高强度镜头妆和完整全妆流程",
+    "url": "https://www.nikkietutorials.com/site/",
+    "source": "官方网站"
+  },
+  {
+    "id": "hindash",
+    "name": "Hindash",
+    "platforms": [
+      "YouTube",
+      "Instagram"
+    ],
+    "handle": "@hindash",
+    "region": "阿联酋",
+    "focus": [
+      "渐层眼妆",
+      "高级灰调",
+      "成熟肌妆容"
+    ],
+    "bestFor": "学习柔和晕染、精致眼型与高端妆感",
+    "url": "https://www.youtube.com/@Hindash",
+    "source": "YouTube公开频道"
+  },
+  {
+    "id": "robert",
+    "name": "Robert Welsh",
+    "platforms": [
+      "YouTube",
+      "Instagram"
+    ],
+    "handle": "@robertwelsh",
+    "region": "英国",
+    "focus": [
+      "专业纠错",
+      "眼影结构",
+      "产品使用逻辑"
+    ],
+    "bestFor": "理解常见化妆误区和专业技法边界",
+    "url": "https://linktr.ee/Robertwelsh",
+    "source": "官方 Linktree"
+  },
+  {
+    "id": "wayne",
+    "name": "Wayne Goss",
+    "platforms": [
+      "YouTube",
+      "Instagram"
+    ],
+    "handle": "@WayneGoss",
+    "region": "英国",
+    "focus": [
+      "成熟肌",
+      "底妆",
+      "眼部提拉",
+      "刷具"
+    ],
+    "bestFor": "学习简洁、实用、适配成熟肌的技巧",
+    "url": "https://www.youtube.com/@WayneGoss",
+    "source": "YouTube公开频道"
+  },
+  {
+    "id": "smitha",
+    "name": "Smitha Deepak",
+    "platforms": [
+      "YouTube",
+      "Instagram"
+    ],
+    "handle": "@SmithaDeepak",
+    "region": "美国",
+    "focus": [
+      "内双眼妆",
+      "单眼皮眼妆",
+      "新手教程"
+    ],
+    "bestFor": "跟练不同眼型的分步眼妆",
+    "url": "https://www.youtube.com/@SmithaDeepak",
+    "source": "YouTube公开频道"
+  },
+  {
+    "id": "patrick",
+    "name": "Patrick Ta",
+    "platforms": [
+      "Instagram",
+      "TikTok",
+      "YouTube"
+    ],
+    "handle": "@patrickta",
+    "region": "美国",
+    "focus": [
+      "明星红毯",
+      "双质地腮红",
+      "健康光泽"
+    ],
+    "bestFor": "学习颧骨结构、腮红叠加与明星妆感",
+    "url": "https://linktr.ee/patrickta",
+    "source": "官方认证 Linktree"
+  },
+  {
+    "id": "hung",
+    "name": "Hung Vanngo",
+    "platforms": [
+      "Instagram",
+      "YouTube"
+    ],
+    "handle": "@hungvanngo",
+    "region": "美国",
+    "focus": [
+      "红毯妆",
+      "色彩构图",
+      "烟熏眼"
+    ],
+    "bestFor": "学习不同肤色上的高完成度明星妆",
+    "url": "https://www.hungvanngo.com/",
+    "source": "官方个人网站"
+  },
+  {
+    "id": "katie",
+    "name": "Katie Jane Hughes",
+    "platforms": [
+      "Instagram",
+      "TikTok",
+      "YouTube"
+    ],
+    "handle": "@katiejanehughes",
+    "region": "美国",
+    "focus": [
+      "真实皮肤质感",
+      "湿润高光",
+      "创意眼妆"
+    ],
+    "bestFor": "学习“皮肤像皮肤”的轻薄底妆",
+    "url": "https://linktr.ee/Katiejanehughes",
+    "source": "官方 Linktree"
+  },
+  {
+    "id": "namvo",
+    "name": "Nam Vo",
+    "platforms": [
+      "Instagram",
+      "TikTok"
+    ],
+    "handle": "@namvo",
+    "region": "美国",
+    "focus": [
+      "Dewy Dumpling",
+      "高光",
+      "水润底妆"
+    ],
+    "bestFor": "学习高光位置和水润肌肤表达",
+    "url": "https://www.instagram.com/namvo/",
+    "source": "Instagram公开主页"
+  },
+  {
+    "id": "nikki",
+    "name": "Nikki Wolff",
+    "platforms": [
+      "Instagram"
+    ],
+    "handle": "@nikki_makeup",
+    "region": "英国",
+    "focus": [
+      "柔雾眼妆",
+      "模特妆",
+      "精致裸妆"
+    ],
+    "bestFor": "学习时尚编辑感与柔和轮廓",
+    "url": "https://www.instagram.com/nikki_makeup/",
+    "source": "Instagram公开主页"
+  },
+  {
+    "id": "violette",
+    "name": "Violette Serrat",
+    "platforms": [
+      "Instagram",
+      "YouTube",
+      "TikTok"
+    ],
+    "handle": "@violette_fr",
+    "region": "法国",
+    "focus": [
+      "法式妆容",
+      "红唇",
+      "艺术色彩"
+    ],
+    "bestFor": "学习少步骤、高风格度的法式妆容",
+    "url": "https://www.instagram.com/violette_fr/",
+    "source": "Instagram公开主页"
+  },
+  {
+    "id": "danessa",
+    "name": "Danessa Myricks",
+    "platforms": [
+      "Instagram",
+      "TikTok",
+      "YouTube"
+    ],
+    "handle": "@danessa_myricks",
+    "region": "美国",
+    "focus": [
+      "多肤色底妆",
+      "色彩创意",
+      "膏状产品"
+    ],
+    "bestFor": "学习包容不同肤色与质地的专业用法",
+    "url": "https://www.instagram.com/danessa_myricks/",
+    "source": "Instagram公开主页"
+  },
+  {
+    "id": "mikayla",
+    "name": "Mikayla Nogueira",
+    "platforms": [
+      "TikTok",
+      "Instagram"
+    ],
+    "handle": "@mikaylanogueira",
+    "region": "美国",
+    "focus": [
+      "新品试用",
+      "高完成度全妆",
+      "短视频教程"
+    ],
+    "bestFor": "快速了解流行产品与强妆效流程",
+    "url": "https://linktr.ee/Mikaylanogueira",
+    "source": "官方认证 Linktree"
+  },
+  {
+    "id": "meredith",
+    "name": "Meredith Duxbury",
+    "platforms": [
+      "TikTok",
+      "Instagram"
+    ],
+    "handle": "@meredithduxbury",
+    "region": "美国",
+    "focus": [
+      "创意底妆",
+      "时尚妆容",
+      "趋势实验"
+    ],
+    "bestFor": "观察短视频妆容趋势与大胆表现手法",
+    "url": "https://www.tiktok.com/@meredithduxbury",
+    "source": "TikTok公开账号"
+  },
+  {
+    "id": "erin",
+    "name": "Erin Parsons",
+    "platforms": [
+      "TikTok",
+      "Instagram",
+      "YouTube"
+    ],
+    "handle": "@erinparsonsmakeup",
+    "region": "美国",
+    "focus": [
+      "复古彩妆史",
+      "创意眼妆",
+      "红唇"
+    ],
+    "bestFor": "学习复古技法、产品历史与创意表达",
+    "url": "https://www.instagram.com/erinparsonsmakeup/",
+    "source": "Instagram公开主页"
+  },
+  {
+    "id": "rose",
+    "name": "Rose Siard",
+    "platforms": [
+      "TikTok",
+      "Instagram"
+    ],
+    "handle": "@roseandben",
+    "region": "美国",
+    "focus": [
+      "刷具技巧",
+      "底妆纠错",
+      "产品对比"
+    ],
+    "bestFor": "学习非常具体的上妆手法和工具选择",
+    "url": "https://www.instagram.com/roseandben/",
+    "source": "Instagram公开主页"
+  },
+  {
+    "id": "scortezz",
+    "name": "Scortezz Beauty",
+    "platforms": [
+      "TikTok",
+      "Instagram"
+    ],
+    "handle": "@scortezzbeauty",
+    "region": "美国",
+    "focus": [
+      "色彩理论",
+      "创意妆容",
+      "产品解析"
+    ],
+    "bestFor": "理解颜色搭配与趋势妆容的构成",
+    "url": "https://www.tiktok.com/@scortezzbeauty",
+    "source": "TikTok公开账号"
+  },
+  {
+    "id": "cheng",
+    "name": "程十安an／姜乘澜",
+    "platforms": [
+      "抖音"
+    ],
+    "handle": "抖音号 1950495951（旧账号）",
+    "region": "中国",
+    "focus": [
+      "脸型修饰",
+      "新手妆教",
+      "眼妆",
+      "底妆"
+    ],
+    "bestFor": "学习针对中庭、脸型和眼型的中文步骤化教程",
+    "url": "https://www.douyin.com/user/MS4wLjABAAAAbxmiV504fzKsys2Fw9qzn2iJWJyzxVbk1mDzAnurQV8",
+    "source": "抖音公开主页；2026年以本名姜乘澜回归，旧账号归属需注意"
+  },
+  {
+    "id": "tangyi",
+    "name": "唐毅 TangYi",
+    "platforms": [
+      "抖音"
+    ],
+    "handle": "抖音号 1854337286",
+    "region": "中国",
+    "focus": [
+      "中国妆",
+      "粉彩妆",
+      "明星妆教"
+    ],
+    "bestFor": "学习东方审美、原生骨相和专业明星妆容",
+    "url": "https://www.douyin.com/user/MS4wLjABAAAA8H9KiE_hhyXq6JWk9fnJfmTfDjAmiR5KWGe9Vr5kW18",
+    "source": "抖音认证公开主页"
+  },
+  {
+    "id": "blackcat",
+    "name": "一一只是黑猫",
+    "platforms": [
+      "抖音"
+    ],
+    "handle": "抖音号 11heimao",
+    "region": "中国",
+    "focus": [
+      "明星妆拆解",
+      "韩妆",
+      "修容",
+      "高光"
+    ],
+    "bestFor": "学习明星妆容拆解和上镜结构调整",
+    "url": "https://www.douyin.com/user/MS4wLjABAAAAWcEMWGxFDESmOgodYstHf33TBI4JeKp6Jo-roYPa-kE",
+    "source": "抖音公开主页"
+  },
+  {
+    "id": "lanlan",
+    "name": "兰兰同学",
+    "platforms": [
+      "抖音"
+    ],
+    "handle": "抖音号 xiaolan567",
+    "region": "中国",
+    "focus": [
+      "新手跟练",
+      "懒人妆",
+      "氧气淡妆"
+    ],
+    "bestFor": "适合新手按步骤完成日常淡妆",
+    "url": "https://www.douyin.com/user/MS4wLjABAAAAr3kro2PiuL4latPm0OjBzlaAOSJjP2U4YPmvuVBzKNcPBiLulwkJNJM5DirE8TS7",
+    "source": "抖音公开主页"
+  },
+  {
+    "id": "mo",
+    "name": "美妆成分专家莫同学",
+    "platforms": [
+      "抖音"
+    ],
+    "handle": "抖音号 dyju90sc1eu1",
+    "region": "中国",
+    "focus": [
+      "成分解析",
+      "产品避坑",
+      "彩妆测评"
+    ],
+    "bestFor": "补充产品成分、适用肤质和消费避坑知识",
+    "url": "https://www.douyin.com/user/MS4wLjABAAAA3BkYdVs52AyzRMrKISRW6skLnoir5Hn91_9YyMnTnAWObdScDiDAaj9OnTgeR8Ru",
+    "source": "抖音公开主页"
+  },
+  {
+    "id": "maogeping",
+    "name": "毛戈平",
+    "platforms": [
+      "抖音",
+      "品牌官网"
+    ],
+    "handle": "MAOGEPING",
+    "region": "中国",
+    "focus": [
+      "东方骨相",
+      "光影修容",
+      "舞台妆",
+      "专业教育"
+    ],
+    "bestFor": "学习中国化妆体系中的骨相、光影与结构塑造",
+    "url": "https://www.maogeping.com/about.html",
+    "source": "毛戈平品牌官方网站"
+  }
+]
