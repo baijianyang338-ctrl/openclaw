@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f34">
+<meta name="description" content="在线面部比例分析、妆容模板与YouTube、Instagram、TikTok、抖音美妆博主学习目录。">
+<title>妆容参照｜AI测脸与博主库</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#"><span class="logo">M</span><span>妆容参照</span></a>
+  <nav class="nav" aria-label="网站导航">
+    <button class="active" data-page="analysis">AI测脸</button>
+    <button data-page="templates">妆容模板</button>
+    <button data-page="creators">博主库</button>
+  </nav>
+  <div class="network"><i id="netDot"></i><span id="netText">正在连接模型</span></div>
+</header>
+
+<main id="analysisPage" class="page active-page">
+  <section class="hero wrap">
+    <div>
+      <p class="eyebrow">FACE STRUCTURE · MAKEUP REFERENCE</p>
+      <h1>找到真正适合你的<br><em>妆容参照</em></h1>
+      <p class="lead">上传正面照片，浏览器在线检测面部关键点，计算五官比例，并从 20 套妆容模板中给出结构匹配建议。</p>
+      <div class="pills"><span>✓ 照片本地处理</span><span>✓ 无需注册</span><span>✓ 手机可用</span><span>✓ 公开博主入口</span></div>
+    </div>
+    <div class="hero-card"><div><b>结构优先</b><p>不是判断你“像谁”，而是分析眉眼、鼻唇、脸型和视觉重心，找到可借鉴的化妆方法。</p></div><div class="face-line"></div></div>
+  </section>
+
+  <section class="wrap upload-wrap">
+    <div id="dropzone" class="dropzone panel">
+      <div class="upload-icon">↥</div><h2>选择一张正面照片</h2>
+      <p>建议自然光、平视、无遮挡，支持 JPG / PNG / WEBP</p>
+      <div class="actions"><label class="btn primary"><input id="fileInput" type="file" accept="image/*" hidden>选择照片</label><button id="cameraBtn" class="btn secondary">调用摄像头</button></div>
+    </div>
+
+    <div id="analysisBox" class="analysis-grid hidden">
+      <section class="panel photo-panel">
+        <div id="photoStage" class="photo-stage"><img id="preview" alt="待分析照片"><canvas id="overlay"></canvas></div>
+        <div class="file-meta"><span id="fileName">—</span><span id="fileSize">—</span></div>
+        <div class="two-buttons"><button id="resetBtn" class="btn secondary">重新选择</button><button id="analyzeBtn" class="btn primary">开始在线分析</button></div>
+      </section>
+      <aside class="panel metric-panel">
+        <h2>关键比例与照片质量</h2>
+        <div id="status" class="status">等待分析。首次打开需要联网加载人脸模型。</div>
+        <div id="metrics" class="metrics"></div>
+        <div class="progress"><i id="progress"></i></div>
+        <p id="quality" class="note">结果仅用于妆容结构参考，不构成身份识别或医学判断。</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="recommendations" class="wrap section hidden">
+    <div class="section-head"><div><p class="eyebrow">MATCH RESULTS</p><h2>更值得参考的妆容结构</h2><p>重点学习构图与视觉重心，不建议整张脸机械照搬。</p></div></div>
+    <div id="resultCards" class="grid"></div>
+  </section>
+</main>
+
+<main id="templatesPage" class="page hidden">
+  <section class="wrap section page-intro"><p class="eyebrow">MAKEUP TEMPLATE LIBRARY</p><h1>20 套可搜索的<br><em>妆容模板</em></h1><p class="lead">覆盖日常、眼妆、脸型、底妆、上镜和场景需求。每套模板包含复刻步骤和避坑提示。</p>
+    <div class="toolbar"><input id="templateSearch" class="search" placeholder="搜索：单眼皮、长脸、新娘、职场……"><div id="categoryFilters" class="filters"></div></div>
+    <div id="templateCards" class="grid"></div>
+  </section>
+</main>
+
+<main id="creatorsPage" class="page hidden">
+  <section class="wrap section page-intro"><p class="eyebrow">CREATOR DIRECTORY</p><h1>跨平台学习<br><em>化妆博主库</em></h1><p class="lead">整理 YouTube、Instagram、TikTok 与抖音的公开创作者入口，按平台和技术方向筛选。</p>
+    <div class="stats"><div><b id="creatorCount">24</b><span>公开博主条目</span></div><div><b>4</b><span>主要平台</span></div><div><b>20</b><span>妆容模板</span></div></div>
+    <div class="toolbar"><input id="creatorSearch" class="search" placeholder="搜索：底妆、眼妆、成熟肌、修容……"><div id="platformFilters" class="filters"></div></div>
+    <div id="creatorCards" class="creator-grid"></div>
+    <div class="data-note">资料仅包含公开账号入口、内容方向和适合学习的技术，不复制头像、视频、课程或付费内容，也不展示容易过时的粉丝数。账号可能更名或改变归属，请以打开后的原平台页面为准。</div>
+  </section>
+</main>
+
+<footer>照片默认只在当前浏览器中参与计算；模型文件由 CDN 在线加载。创作者条目不代表平台或创作者背书。</footer>
+
+<dialog id="detailDialog"><button class="dialog-close" aria-label="关闭">×</button><div id="detail"></div></dialog>
+<dialog id="cameraDialog"><button class="dialog-close" aria-label="关闭">×</button><h2>拍摄正脸照片</h2><p>摄像头需要 HTTPS 权限。</p><video id="camera" autoplay muted playsinline></video><button id="captureBtn" class="btn primary full">拍摄并使用</button><canvas id="cameraCanvas" hidden></canvas></dialog>
+<div id="toast" class="toast"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
