@@ -6,7 +6,17 @@
 <meta name="theme-color" content="#173f34">
 <meta name="description" content="在线面部比例分析、妆容模板与YouTube、Instagram、TikTok、抖音、小红书美妆博主学习目录。">
 <title>妆容参照｜AI测脸与博主库</title>
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/styles.css?v=20260801-0116">
+<script>
+  window.__MAKEUP_ASSET_BASE__='https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/';
+  const __makeupFetch=window.fetch.bind(window);
+  window.fetch=(input,init)=>{
+    if(typeof input==='string'&&input.startsWith('./data/')){
+      input=window.__MAKEUP_ASSET_BASE__+input.slice(2)+'?v=20260801-0116';
+    }
+    return __makeupFetch(input,init);
+  };
+</script>
 </head>
 <body>
 <header class="topbar">
@@ -80,7 +90,22 @@
 <dialog id="detailDialog"><button class="dialog-close" aria-label="关闭">×</button><div id="detail"></div></dialog>
 <dialog id="cameraDialog"><button class="dialog-close" aria-label="关闭">×</button><h2>拍摄正脸照片</h2><p>摄像头需要 HTTPS 权限；预览与最终照片均保持自拍镜像。</p><video id="camera" autoplay muted playsinline></video><button id="captureBtn" class="btn primary full">拍摄并使用</button><canvas id="cameraCanvas" hidden></canvas></dialog>
 <div id="toast" class="toast"></div>
-<script type="module" src="./app.js"></script>
-<script type="module" src="./fixes.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('[data-page]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        document.querySelectorAll('[data-page]').forEach(item=>item.classList.remove('active'));
+        button.classList.add('active');
+        ['analysis','templates','creators'].forEach(page=>{
+          document.querySelector('#'+page+'Page')?.classList.toggle('hidden',page!==button.dataset.page);
+        });
+        window.scrollTo({top:0,behavior:'smooth'});
+      });
+    });
+  });
+</script>
+<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/app.js?v=20260801-0116"></script>
+<script defer src="https://cdn.jsdmirror.com/gh/baijianyang338-ctrl/openclaw@gh-pages/docs/makeup/fixes.js?v=20260801-0116"></script>
 </body>
 </html>
