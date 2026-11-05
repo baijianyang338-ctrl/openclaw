@@ -25,7 +25,7 @@ workflows:
           xcodebuild -project "$CM_BUILD_DIR/$XCODE_PROJECT" -list
       - name: Build iOS app and broadcast extension without signing
         script: |
-          set -o pipefail
+          set +e
           xcodebuild \
             -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
@@ -35,6 +35,15 @@ workflows:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             clean build | tee "$CM_BUILD_DIR/build/xcodebuild.log"
+          XCODE_STATUS=${PIPESTATUS[0]}
+          if [ "$XCODE_STATUS" -ne 0 ]; then
+            echo ""
+            echo "========== XCODE ERROR SUMMARY =========="
+            grep -nE '(^|[[:space:]])(error:|fatal error:)|The following build commands failed:|BUILD FAILED|ValidateEmbeddedBinary' \
+              "$CM_BUILD_DIR/build/xcodebuild.log" | tail -n 120 || true
+            echo "========== END XCODE ERROR SUMMARY ======"
+            exit "$XCODE_STATUS"
+          fi
       - name: Verify embedded broadcast extension
         script: |
           set -euo pipefail
