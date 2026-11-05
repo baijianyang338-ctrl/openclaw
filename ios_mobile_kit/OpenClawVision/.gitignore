@@ -1,0 +1,8 @@
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+*.ipa
+*.mobileprovision
+*.p12
+*.cer

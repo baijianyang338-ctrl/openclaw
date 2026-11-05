@@ -1,0 +1,55 @@
+workflows:
+  ios-native-unsigned:
+    name: OpenClaw Vision - unsigned validation
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+      vars:
+        XCODE_PROJECT: ios_mobile_kit/OpenClawVision/OpenClawVision.xcodeproj
+        XCODE_SCHEME: OpenClawVision
+    cache:
+      cache_paths:
+        - $HOME/Library/Developer/Xcode/DerivedData
+    scripts:
+      - name: Show Xcode environment
+        script: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -showsdks
+      - name: Validate project and shared scheme
+        script: |
+          set -euo pipefail
+          test -f "$CM_BUILD_DIR/$XCODE_PROJECT/project.pbxproj"
+          test -f "$CM_BUILD_DIR/ios_mobile_kit/OpenClawVision/OpenClawVision.xcodeproj/xcshareddata/xcschemes/OpenClawVision.xcscheme"
+          xcodebuild -project "$CM_BUILD_DIR/$XCODE_PROJECT" -list
+      - name: Build iOS app and broadcast extension without signing
+        script: |
+          set -o pipefail
+          xcodebuild \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$CM_BUILD_DIR/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build | tee "$CM_BUILD_DIR/build/xcodebuild.log"
+      - name: Verify embedded broadcast extension
+        script: |
+          set -euo pipefail
+          APP_PATH=$(find "$CM_BUILD_DIR/build/DerivedData/Build/Products/Debug-iphoneos" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          test -d "$APP_PATH/PlugIns/OpenClawBroadcast.appex"
+          /usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$APP_PATH/PlugIns/OpenClawBroadcast.appex/Info.plist"
+    artifacts:
+      - build/xcodebuild.log
+      - build/DerivedData/Build/Products/Debug-iphoneos/*.app
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
