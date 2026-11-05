@@ -4,6 +4,8 @@ enum AppConstants {
     static let appGroupIdentifier = "group.com.baijianyang.openclawvision"
     static let broadcastExtensionBundleIdentifier = "com.baijianyang.openclawvision.broadcast"
     static let ocrResultKey = "latestOCRResult"
+    static let captureTelemetryKey = "captureTelemetry"
+    static let processingPausedKey = "captureProcessingPaused"
 }
 
 enum SharedDefaults {

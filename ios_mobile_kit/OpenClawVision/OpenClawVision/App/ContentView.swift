@@ -1,10 +1,13 @@
 import Combine
+import Foundation
 import SwiftUI
 
 struct ContentView: View {
     @AppStorage("esp32Host", store: SharedDefaults.store) private var esp32Host = "192.168.4.1"
     @AppStorage("esp32Port", store: SharedDefaults.store) private var esp32Port = 3333
+    @AppStorage(AppConstants.processingPausedKey, store: SharedDefaults.store) private var processingPaused = false
     @State private var latestResult = OCRResult.empty
+    @State private var telemetry = CaptureTelemetry.empty
     private let refreshTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -22,6 +25,27 @@ struct ContentView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    LabeledContent("状态", value: telemetry.state.displayName)
+                    LabeledContent("实际接收帧率", value: String(format: "%.1f FPS", telemetry.framesPerSecond))
+                    LabeledContent("已接收帧数", value: telemetry.receivedFrameCount.formatted())
+                    if let duration = telemetry.lastOCRDurationMilliseconds {
+                        LabeledContent("最近 OCR 延迟", value: String(format: "%.0f ms", duration))
+                    }
+                    if let lastFrameAt = telemetry.lastFrameAt {
+                        LabeledContent("最近画面", value: lastFrameAt.formatted(date: .omitted, time: .standard))
+                    }
+                    if let failureReason = telemetry.failureReason {
+                        Text("失败原因：\(failureReason)")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    Button(processingPaused ? "继续本地识别" : "暂停本地识别") {
+                        processingPaused.toggle()
+                    }
+                    .disabled(telemetry.state == .idle || telemetry.state == .finished)
+                    Text("停止系统广播请再次点击上方广播按钮，并在系统面板中选择停止。iOS 不允许应用绕过系统界面静默开始或停止跨 App 采集。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("ESP32-S3 UDP") {
@@ -63,5 +87,6 @@ struct ContentView: View {
 
     private func reloadResult() {
         latestResult = OCRResult.load()
+        telemetry = CaptureTelemetry.load()
     }
 }
