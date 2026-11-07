@@ -21,6 +21,17 @@ workflows:
           set -euo pipefail
           xcodebuild -version
           xcodebuild -showsdks
+      - name: Test local rule extraction and consensus
+        script: |
+          set -euo pipefail
+          mkdir -p "$CM_BUILD_DIR/build"
+          swiftc \
+            "$CM_BUILD_DIR/ios_mobile_kit/OpenClawVision/OpenClawVision/Shared/AppConstants.swift" \
+            "$CM_BUILD_DIR/ios_mobile_kit/OpenClawVision/OpenClawVision/Shared/OCRResult.swift" \
+            "$CM_BUILD_DIR/ios_mobile_kit/OpenClawVision/OpenClawVision/Shared/RuleExtractor.swift" \
+            "$CM_BUILD_DIR/ios_mobile_kit/OpenClawVision/Tests/main.swift" \
+            -o "$CM_BUILD_DIR/build/rule-tests"
+          "$CM_BUILD_DIR/build/rule-tests"
       - name: Validate project and shared scheme
         script: |
           set -euo pipefail
@@ -66,3 +77,4 @@ workflows:
           include: true
           source: true
       cancel_previous_builds: true
+

@@ -13,30 +13,42 @@ enum RuleExtractor {
     }
 
     static func extract(from result: OCRResult) -> ExtractedRule? {
-        let patterns = [
-            #"(?:评论|发送|输入|口令)[：:]\s*[「『“\"]?(.+?)[」』”\"]?$"#,
-            #"(?:评论|发送|输入|口令)\s+(.+)$"#
-        ]
-
-        for line in result.lines {
-            for pattern in patterns {
-                guard let expression = try? NSRegularExpression(pattern: pattern),
-                      let match = expression.firstMatch(
-                        in: line,
-                        range: NSRange(line.startIndex..<line.endIndex, in: line)
-                      ),
-                      match.numberOfRanges > 1,
-                      let range = Range(match.range(at: 1), in: line) else { continue }
-                let comment = String(line[range]).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !comment.isEmpty else { continue }
-                return ExtractedRule(
-                    requiredComment: comment,
-                    confidence: result.averageConfidence ?? 0,
-                    countdownSeconds: extractCountdown(from: result.lines)
-                )
-            }
+        let allText = result.lines.joined(separator: " ")
+        guard allText.contains("福袋"),
+              allText.contains("参与条件") || allText.contains("指定评论") || allText.contains("评论要求") else {
+            return nil
         }
-        return nil
+        let observations = result.observations ?? result.lines.map {
+            RecognizedText(text: $0, confidence: result.averageConfidence ?? 0)
+        }
+        let pattern = #"(?:指定|要求)?(?:评论|发送|输入|口令)(?:内容|文字)?[：:]\s*(.+)$"#
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return nil }
+        var candidates: [String: Float] = [:]
+        for observation in observations {
+            let line = observation.text
+            guard let match = expression.firstMatch(
+                in: line,
+                range: NSRange(line.startIndex..<line.endIndex, in: line)
+            ), let range = Range(match.range(at: 1), in: line) else { continue }
+            let raw = String(line[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let comment = unquote(raw)
+            guard !comment.isEmpty, comment.count <= 80 else { continue }
+            candidates[comment] = min(candidates[comment] ?? 1, observation.confidence)
+        }
+        guard candidates.count == 1, let candidate = candidates.first else { return nil }
+        return ExtractedRule(
+            requiredComment: candidate.key,
+            confidence: candidate.value,
+            countdownSeconds: extractCountdown(from: result.lines)
+        )
+    }
+
+    private static func unquote(_ text: String) -> String {
+        let pairs: [(Character, Character)] = [("「", "」"), ("『", "』"), ("“", "”"), ("\"", "\"")]
+        for (left, right) in pairs where text.first == left && text.last == right && text.count >= 2 {
+            return String(text.dropFirst().dropLast())
+        }
+        return text
     }
 
     private static func extractCountdown(from lines: [String]) -> Int? {
@@ -64,7 +76,7 @@ final class RuleConsensusEvaluator {
     private let requiredMatches: Int
     private let minimumConfidence: Float
 
-    init(requiredMatches: Int = 2, minimumConfidence: Float = 0.65) {
+    init(requiredMatches: Int = 3, minimumConfidence: Float = 0.80) {
         self.requiredMatches = requiredMatches
         self.minimumConfidence = minimumConfidence
     }
@@ -89,3 +101,4 @@ final class RuleConsensusEvaluator {
         consecutiveMatches = 0
     }
 }
+

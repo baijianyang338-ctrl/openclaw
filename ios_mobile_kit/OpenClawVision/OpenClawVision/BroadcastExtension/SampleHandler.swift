@@ -5,6 +5,7 @@ import Vision
 
 final class SampleHandler: RPBroadcastSampleHandler {
     private let processingQueue = DispatchQueue(label: "com.baijianyang.openclawvision.ocr", qos: .userInitiated)
+    private let processingGate = DispatchSemaphore(value: 1)
     private var lastProcessedTimestamp = CMTime.invalid
     private let minimumFrameInterval = CMTime(seconds: 0.75, preferredTimescale: 600)
     private var telemetry = CaptureTelemetry.empty
@@ -60,9 +61,11 @@ final class SampleHandler: RPBroadcastSampleHandler {
            CMTimeCompare(CMTimeSubtract(timestamp, lastProcessedTimestamp), minimumFrameInterval) < 0 {
             return
         }
+        guard processingGate.wait(timeout: .now()) == .success else { return }
         lastProcessedTimestamp = timestamp
 
         processingQueue.async { [weak self] in
+            defer { self?.processingGate.signal() }
             self?.recognizeText(in: pixelBuffer)
         }
     }
@@ -80,7 +83,10 @@ final class SampleHandler: RPBroadcastSampleHandler {
                 guard let candidate = observation.topCandidates(1).first else { return nil }
                 return RecognizedText(text: candidate.string, confidence: candidate.confidence)
             }
-            guard !recognized.isEmpty else { return }
+            guard !recognized.isEmpty else {
+                ruleConsensus.reset()
+                return
+            }
             let limited = Array(recognized.prefix(40))
             let confidence = limited.map(\.confidence).reduce(0, +) / Float(limited.count)
             let result = OCRResult(
@@ -104,6 +110,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
 
     private func analyze(_ result: OCRResult) {
         guard RuleExtractor.containsGiveaway(in: result) else {
+            ruleConsensus.reset()
             if stateMachine.snapshot.state == .idle {
                 _ = stateMachine.transition(to: .searching, message: "正在画面中寻找福袋")
             }
@@ -116,11 +123,15 @@ final class SampleHandler: RPBroadcastSampleHandler {
         if stateMachine.snapshot.state == .detected {
             _ = stateMachine.transition(to: .readingRules, message: "正在读取参与规则")
         }
-        guard stateMachine.snapshot.state == .readingRules,
-              let candidate = RuleExtractor.extract(from: result) else { return }
+        guard stateMachine.snapshot.state == .readingRules else { return }
+        guard let candidate = RuleExtractor.extract(from: result) else {
+            ruleConsensus.reset()
+            _ = stateMachine.transition(to: .readingRules, message: "未能唯一确认评论规则，继续识别")
+            return
+        }
 
         guard let confirmed = ruleConsensus.evaluate(candidate) else {
-            _ = stateMachine.transition(to: .readingRules, message: "评论内容需连续两帧一致，正在复核")
+            _ = stateMachine.transition(to: .readingRules, message: "评论内容需连续三帧且置信度达标，正在复核")
             return
         }
         stateMachine.updateRule(
@@ -146,3 +157,4 @@ final class SampleHandler: RPBroadcastSampleHandler {
     }
 
 }
+
