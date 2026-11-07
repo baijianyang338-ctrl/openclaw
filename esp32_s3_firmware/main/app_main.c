@@ -3,6 +3,7 @@
 #include "nvs_flash.h"
 
 #include "hid_control.h"
+#include "device_safety.h"
 #include "protocol_server.h"
 #include "wifi_station.h"
 
@@ -19,9 +20,10 @@ void app_main(void)
     ESP_ERROR_CHECK(result);
 
     ESP_ERROR_CHECK(hid_control_init());
+    ESP_ERROR_CHECK(device_safety_start());
     ESP_LOGI(TAG, "BLE HID ready; pair 'OpenClaw Controller' in iPhone Settings");
 
-    result = wifi_station_start();
+    result = openclaw_wifi_station_start();
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "HTTP control disabled because Wi-Fi failed: %s",
                  esp_err_to_name(result));

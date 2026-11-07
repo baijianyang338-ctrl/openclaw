@@ -22,6 +22,9 @@ final class ESP32Client: ObservableObject {
     @Published private(set) var state: ConnectionState = .disconnected
     @Published private(set) var lastAcknowledgement: ControlAcknowledgement?
     @Published private(set) var lastCommandError: String?
+    @Published private(set) var temperatureC: Double?
+    @Published private(set) var overheated = false
+    @Published private(set) var bleConnected = false
     private static let commandIDKey = "openclaw.nextCommandID"
     private static let maximumCommandID: UInt64 = 9_007_199_254_740_991
     private var nextCommandID: UInt64
@@ -58,15 +61,19 @@ final class ESP32Client: ObservableObject {
             guard health.protocolVersion == 1 else {
                 throw ClientError.invalidProtocolVersion(health.protocolVersion)
             }
+            temperatureC = health.temperatureC
+            overheated = health.overheated ?? false
+            bleConnected = health.bleConnected ?? false
             let details: String
             switch health.bleConnected {
             case true: details = "蓝牙已连接"
             case false: details = "蓝牙未连接"
             case nil: details = "蓝牙状态未知"
             }
-            state = .connected("\(health.device)，\(details)" + (health.stopped == true ? "，急停已锁定" : ""))
+            state = .connected("\(health.device)，\(details)" + (health.stopped == true ? "，急停已锁定" : "") + (overheated ? "，过热保护中" : ""))
         } catch {
             state = .failed(error.localizedDescription)
+            bleConnected = false
         }
     }
 
@@ -188,4 +195,3 @@ final class ESP32Client: ObservableObject {
         }
     }
 }
-

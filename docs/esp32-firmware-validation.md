@@ -26,15 +26,34 @@ copied to the ASCII-only directory `C:\Espressif\builds\openclaw-source-16mb`
 and built at `C:\Espressif\builds\openclaw-esp32s3-16mb`.
 
 The complete ESP-IDF 6.1 build finished with exit code 0. `esptool image-info`
-confirmed ESP32-S3, DIO at 80 MHz, and a 16 MB flash header. The application
-image is 851,184 bytes, with 45% of its app partition free. The local Wi-Fi
-SSID and password remain unconfigured, and this image has not been flashed.
+confirmed ESP32-S3, DIO at 80 MHz, and a 16 MB flash header. After adding
+NVS-backed control-token authentication, the firmware was rebuilt successfully.
+The Wi-Fi credentials were configured only in the local staging directory's
+ignored `sdkconfig`; their values and the resulting personalized binary are not
+committed to Git.
 
-After adding NVS-backed control-token authentication and rejection of open
-Wi-Fi, the firmware was rebuilt successfully with ESP-IDF 6.1. The resulting
-16 MB image is 852,768 bytes (`0xd0320`) with 44% of the app partition free.
-This is a compile result; no physical Wi-Fi, BLE, or authorization test has
-been performed on the board yet.
+On 2026-11-07, a full 16 MB read-only backup was saved at
+`C:\Espressif\builds\esp32-before-openclaw-20261107.bin` before writing the
+board. Its SHA-256 is
+`5B44C859F01F450FDB77CE41462D1A6B5CF0D965252A94A1C53CE26BF5026E0A`.
+`idf.py flash` then completed with exit code 0 on `COM3`. The board booted,
+started BLE HID advertising, initialized the chip temperature sensor, and
+obtained IPv4 address `172.20.10.2`. This is a real flash and boot observation,
+not yet an iPhone BLE pairing or phone-control verification.
+
+The final temperature-enabled application image is 1,315,280 bytes, SHA-256
+`D29E7432113B8BD34FB73D21B70AE2ABB92D42CC77D88938262AED2B23D2F154`.
+It was flashed with `esptool write-flash` after the successful ESP-IDF 6.1
+build. A fresh serial boot capture confirmed both 16-character pairing-token
+parts, BLE advertising, temperature-sensor initialization and the IPv4 address.
+The actual token was withheld from this record.
+
+The Windows PC was on a different Wi-Fi network at this check. TCP to the
+board's port `3333` therefore failed; HTTP authentication, PING and command
+execution against the physical board remain unverified. A private local NVS
+read confirmed a 32-character control token exists, without printing or
+committing it. The board and test client must be on the same LAN for the next
+HTTP test.
 
 The COM port is transient and must be rechecked immediately before flashing.
 
@@ -58,32 +77,25 @@ python -m unittest discover -s mock_esp32/tests -v
 
 ## Still requiring hardware verification
 
-- Flash and boot log on the exact 正点原子 DNESP32S3 revision.
+- HTTP authorization, PING, deduplication, STOP and temperature status on the
+  actual board after the test client joins the same Wi-Fi network.
 - iPhone Bluetooth pairing and reconnect behavior.
 - Mouse direction, scroll direction, pointer acceleration, and absolute
   coordinate calibration.
 - ASCII keyboard layout on the selected iOS keyboard.
 - Chinese text entry strategy.
 - Long-running Wi-Fi reconnect, latency, power, and thermal measurements.
+- Overheat-trigger and recovery behavior on hardware; sensor initialization
+  alone does not prove thermal shutdown works.
 
 A successful Mock test proves protocol behavior only; it does not prove a BLE
 HID report reached the iPhone.
 
-## ESP-IDF build result
+## Build environment
 
-The firmware was compiled successfully for target `esp32s3` with ESP-IDF 6.1.
-The repository lives below a Chinese Windows path, so the normal in-tree build
-failed when GCC misread the generated specs path. Building in the ASCII-only
-directory `C:\Espressif\builds\openclaw-esp32s3` resolved that host tooling
-issue without moving or modifying the repository.
-
-Generated artifacts:
-
-- bootloader: 21,120 bytes;
-- partition table: 3,072 bytes;
-- application image: 851,184 bytes (`0xcfcf0`);
-- smallest application partition: `0x177000`, leaving `0xa7310` bytes (45%).
-
-The build generated `openclaw_esp32_s3.bin` and completed with exit code 0.
-Build artifacts remain outside Git and have not been flashed.
-
+The repository lives below a Chinese Windows path, so the in-tree toolchain
+mis-encoded `文档`. Building from the ASCII-only staging source at
+`C:\Espressif\builds\openclaw-source-16mb` with output at
+`C:\Espressif\builds\openclaw-esp32s3-16mb` resolved that host tooling issue.
+The personalized local BIN contains the configured Wi-Fi credentials and must
+not be published or attached to a GitHub release.

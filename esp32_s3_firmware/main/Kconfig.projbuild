@@ -23,4 +23,12 @@ menu "OpenClaw ESP32-S3 Configuration"
         range 1 65535
         default 3333
 
+    config OPENCLAW_OVERHEAT_CELSIUS
+        int "Pause HID control at chip temperature (C)"
+        range 45 75
+        default 70
+        help
+            Internal sensor is a trend indicator, not a precision thermometer.
+            Control resumes after cooling five degrees below this threshold.
+
 endmenu

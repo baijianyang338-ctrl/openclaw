@@ -14,6 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "hid_control.h"
+#include "device_safety.h"
 #include "nvs.h"
 
 #define MAX_COMMAND_BODY 2048
@@ -59,7 +60,10 @@ static esp_err_t initialize_control_token(void)
     if (result != ESP_OK || strlen(s_control_token) != CONTROL_TOKEN_HEX_LENGTH) {
         return result == ESP_OK ? ESP_ERR_INVALID_SIZE : result;
     }
-    ESP_LOGW(TAG, "Private pairing token for iPhone setup: %s", s_control_token);
+    // ESP-IDF's configured log formatter may truncate a single long value.
+    // Two explicit halves make manual pairing possible without an HTTP token endpoint.
+    ESP_LOGW(TAG, "Private pairing token part 1/2: %.16s", s_control_token);
+    ESP_LOGW(TAG, "Private pairing token part 2/2: %.16s", s_control_token + 16);
     return ESP_OK;
 }
 
@@ -210,6 +214,13 @@ static esp_err_t health_handler(httpd_req_t *request)
     cJSON_AddNumberToObject(object, "protocolVersion", 1);
     cJSON_AddBoolToObject(object, "bleConnected", hid_control_is_connected());
     cJSON_AddBoolToObject(object, "stopped", is_stopped());
+    float temperature = 0;
+    if (device_safety_temperature_celsius(&temperature)) {
+        cJSON_AddNumberToObject(object, "temperatureC", temperature);
+    } else {
+        cJSON_AddNullToObject(object, "temperatureC");
+    }
+    cJSON_AddBoolToObject(object, "overheated", device_safety_is_overheated());
     const esp_err_t result = send_json(request, HTTPD_200, object);
     cJSON_Delete(object);
     return result;
@@ -236,6 +247,11 @@ static esp_err_t execute_command(
     if (is_stopped()) {
         return send_ack(request, HTTP_STATUS_CONFLICT, command_id, "REJECTED",
                         "device is stopped; reboot required");
+    }
+
+    if (!device_safety_allows_action()) {
+        return send_ack(request, HTTP_STATUS_CONFLICT, command_id, "REJECTED",
+                        "chip temperature unsafe or unavailable");
     }
 
     if (!hid_control_is_connected()) {
@@ -415,4 +431,3 @@ esp_err_t protocol_server_start(void)
     ESP_LOGI(TAG, "Control server listening on port %d", CONFIG_OPENCLAW_HTTP_PORT);
     return ESP_OK;
 }
-

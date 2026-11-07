@@ -83,6 +83,14 @@ struct ContentView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     LabeledContent("连接状态", value: esp32Client.state.displayName)
+                    LabeledContent("蓝牙 HID", value: esp32Client.bleConnected ? "已连接" : "未连接或未知")
+                    if let temperature = esp32Client.temperatureC {
+                        LabeledContent("芯片温度", value: String(format: "%.1f °C", temperature))
+                    }
+                    if esp32Client.overheated {
+                        Text("温度保护已触发，设备拒绝普通操作")
+                            .foregroundStyle(.red)
+                    }
                     Button("测试连接") {
                         Task { await esp32Client.testConnection(host: esp32Host, port: esp32Port) }
                     }
@@ -210,4 +218,3 @@ struct ContentView: View {
         }
     }
 }
-

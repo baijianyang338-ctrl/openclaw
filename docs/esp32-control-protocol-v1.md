@@ -13,6 +13,8 @@
 
 默认端口为 `3333`。真机应使用固定 DHCP 租约、mDNS 或在 App 中手动配置 IP。
 
+`GET /v1/health` 返回 `bleConnected`、`stopped`、`temperatureC`（传感器无效时为 `null`）及 `overheated`。温度达到配置阈值或传感器读数不可用时，固件释放 HID 按键并拒绝普通动作；`STOP` 与 `PING` 仍可接收。这里是 ESP32-S3 内部芯片温度，不等于环境温度或外壳温度。
+
 ## 指令
 
 ```json
@@ -67,4 +69,3 @@
 - 识别置信度不足或连续画面不一致时不得执行。
 - 自动化必须提供用户可见的急停入口。
 - Mock 的 `EXECUTED` 只表示模拟确认，不证明真实蓝牙 HID 已完成动作。
-

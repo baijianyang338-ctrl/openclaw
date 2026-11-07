@@ -47,7 +47,7 @@ static void wifi_event_handler(
     }
 }
 
-esp_err_t wifi_station_start(void)
+esp_err_t openclaw_wifi_station_start(void)
 {
     if (strlen(CONFIG_OPENCLAW_WIFI_SSID) == 0) {
         ESP_LOGE(TAG, "Wi-Fi SSID is empty; run idf.py menuconfig first");
@@ -107,4 +107,3 @@ esp_err_t wifi_station_start(void)
     ESP_LOGE(TAG, "Unable to connect to configured Wi-Fi");
     return ESP_FAIL;
 }
-

@@ -68,5 +68,6 @@ struct ESP32Health: Codable, Equatable {
     let protocolVersion: Int
     let bleConnected: Bool?
     let stopped: Bool?
+    let temperatureC: Double?
+    let overheated: Bool?
 }
-

@@ -13,6 +13,10 @@ Implemented now:
 - Recent command ID deduplication and an emergency-stop latch.
 - A random 128-bit bearer token generated on first boot and retained in NVS;
   both HTTP routes reject requests without that token.
+- Internal chip temperature sampled once per second; ordinary actions are
+  rejected and HID buttons are released if the configured threshold is reached
+  or the reading becomes unavailable. The default threshold is 70 °C with
+  5 °C recovery hysteresis; calibrate it using the actual board.
 - Accurate failure responses when BLE is disconnected or a command cannot be
   represented safely.
 
@@ -28,7 +32,8 @@ No Wi-Fi password, signing key, API key, or other credential belongs in Git.
 The generated `sdkconfig` is intentionally ignored.
 The local Wi-Fi network must use WPA2/WPA3 with a password of at least eight
 characters. Read the generated control token from the private serial monitor
-after flashing and enter it in the iPhone app. Do not paste it into a Git issue
+after flashing and enter it in the iPhone app. The log prints two 16-character
+parts; enter part 1 immediately followed by part 2. Do not paste it into a Git issue
 or commit it to the repository. The control API uses HTTP on the local network;
 TLS has not yet been implemented.
 
@@ -69,7 +74,8 @@ Win32_SerialPort` again before flashing.
 
 1. On iPhone, open Settings > Bluetooth and pair `OpenClaw Controller`.
 2. Read the board's IPv4 address from the serial monitor or router.
-3. Enter that address and port `3333` in the OpenClaw iPhone app.
+3. Enter that address, port `3333`, and the local serial pairing token in the
+   OpenClaw iPhone app. The iPhone must be on the same Wi-Fi LAN as the board.
 4. Run connection test, then `PING`.
 5. Test small relative mouse movements before any automated operation.
 
@@ -91,4 +97,3 @@ board to resume. `PING` remains available while stopped for diagnostics.
 ESP-IDF `examples/bluetooth/esp_hid_device` example and retain the original
 `Unlicense OR CC0-1.0` SPDX headers. The OpenClaw-specific HID report map,
 protocol validation, and command execution are implemented separately.
-
