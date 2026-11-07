@@ -53,6 +53,10 @@ esp_err_t wifi_station_start(void)
         ESP_LOGE(TAG, "Wi-Fi SSID is empty; run idf.py menuconfig first");
         return ESP_ERR_INVALID_ARG;
     }
+    if (strlen(CONFIG_OPENCLAW_WIFI_PASSWORD) < 8) {
+        ESP_LOGE(TAG, "WPA2/WPA3 Wi-Fi password must be configured (at least 8 characters)");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     s_wifi_events = xEventGroupCreate();
     if (s_wifi_events == NULL) {
@@ -80,9 +84,7 @@ esp_err_t wifi_station_start(void)
     strlcpy((char *)wifi_config.sta.password,
             CONFIG_OPENCLAW_WIFI_PASSWORD,
             sizeof(wifi_config.sta.password));
-    wifi_config.sta.threshold.authmode = strlen(CONFIG_OPENCLAW_WIFI_PASSWORD) == 0
-        ? WIFI_AUTH_OPEN
-        : WIFI_AUTH_WPA2_PSK;
+    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -105,3 +107,4 @@ esp_err_t wifi_station_start(void)
     ESP_LOGE(TAG, "Unable to connect to configured Wi-Fi");
     return ESP_FAIL;
 }
+

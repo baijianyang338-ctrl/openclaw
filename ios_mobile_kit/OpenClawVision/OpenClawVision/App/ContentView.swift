@@ -5,6 +5,7 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage("esp32Host", store: SharedDefaults.store) private var esp32Host = "192.168.4.1"
     @AppStorage("esp32Port", store: SharedDefaults.store) private var esp32Port = 3333
+    @AppStorage("esp32Token", store: SharedDefaults.store) private var esp32Token = ""
     @AppStorage(AppConstants.processingPausedKey, store: SharedDefaults.store) private var processingPaused = false
     @StateObject private var esp32Client = ESP32Client()
     @State private var latestResult = OCRResult.empty
@@ -78,6 +79,9 @@ struct ContentView: View {
                         .keyboardType(.numbersAndPunctuation)
                     TextField("端口", value: $esp32Port, format: .number)
                         .keyboardType(.numberPad)
+                    SecureField("设备配对令牌", text: $esp32Token)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                     LabeledContent("连接状态", value: esp32Client.state.displayName)
                     Button("测试连接") {
                         Task { await esp32Client.testConnection(host: esp32Host, port: esp32Port) }

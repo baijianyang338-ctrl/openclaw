@@ -2,6 +2,8 @@
 
 本协议用于 iPhone 与 ESP32-S3 在同一局域网内通信。传输层为 HTTP，负载为 UTF-8 JSON。Mock 服务实现于 `mock_esp32/`；真实固件必须保持相同语义。
 
+设备首次启动时在 NVS 中生成随机 128 位控制令牌，并通过本地串口日志显示。iPhone App 中的“设备配对令牌”仅在本机保存，不写入仓库。所有端点都要求 `Authorization: Bearer <令牌>`；缺失或错误返回 HTTP 401，且不得执行动作。令牌不会在 HTTP 响应中回传。当前 HTTP 依赖受保护的本地 Wi-Fi，尚未实现 TLS，因此不要在开放或不可信网络中使用。
+
 真实 ESP-IDF 固件位于 `esp32_s3_firmware/`。当前实现使用 BLE HID 控制 iPhone，并通过本协议接收局域网指令。
 
 ## 端点
@@ -15,6 +17,7 @@
 
 ```json
 {
+  "version": 1,
   "id": 1001,
   "action": "CLICK",
   "x": 250,
@@ -26,6 +29,7 @@
 动作：`MOVE`、`CLICK`、`PRESS`、`RELEASE`、`SCROLL`、`TYPE`、`STOP`、`PING`。
 
 - `id` 是单调递增的无符号整数。设备必须缓存近期序号；相同序号不得重复执行。
+- `version` 必须为整数 `1`；未提供或不兼容的版本会被拒绝。
 - `x/y` 是屏幕逻辑坐标，必须在后续真机标定后映射为 HID 鼠标位移。
 - `deltaX/deltaY` 用于相对移动或滚动。
 - `durationMilliseconds` 用于按住时长。
@@ -53,6 +57,8 @@
 
 状态：`ACCEPTED`、`EXECUTED`、`DUPLICATE`、`REJECTED`、`FAILED`。
 
+当前 HTTP 请求同步返回最终 `EXECUTED`（BLE HID 报告已发送），对应上层示例中的 `COMPLETED`。它不证明画面已产生预期变化；iPhone 必须重新识别画面。`RECEIVED`、`EXECUTING` 及最终 `COMPLETED` 的多阶段状态回报仍待后续协议升级实现，不能把现有 `EXECUTED` 当成完整闭环成功。
+
 只有收到匹配序号的 `EXECUTED` 才能进入画面验证。网络超时不得盲目重发新序号；应先查询或使用相同序号重试，让设备返回 `DUPLICATE`，避免双击。
 
 ## 安全与平台限制
@@ -61,3 +67,4 @@
 - 识别置信度不足或连续画面不一致时不得执行。
 - 自动化必须提供用户可见的急停入口。
 - Mock 的 `EXECUTED` 只表示模拟确认，不证明真实蓝牙 HID 已完成动作。
+

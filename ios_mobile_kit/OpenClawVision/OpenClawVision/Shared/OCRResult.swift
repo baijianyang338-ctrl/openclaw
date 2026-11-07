@@ -1,8 +1,25 @@
 import Foundation
 
+struct NormalizedRect: Codable, Equatable {
+    let x: Float
+    let y: Float
+    let width: Float
+    let height: Float
+
+    var centerX: Float { x + width / 2 }
+    var centerY: Float { y + height / 2 }
+}
+
 struct RecognizedText: Codable, Equatable {
     let text: String
     let confidence: Float
+    let box: NormalizedRect?
+
+    init(text: String, confidence: Float, box: NormalizedRect? = nil) {
+        self.text = text
+        self.confidence = confidence
+        self.box = box
+    }
 }
 
 struct OCRResult: Codable, Equatable {
@@ -38,3 +55,4 @@ struct OCRResult: Codable, Equatable {
         return result
     }
 }
+

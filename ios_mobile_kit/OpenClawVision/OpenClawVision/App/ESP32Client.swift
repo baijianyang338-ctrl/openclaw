@@ -136,11 +136,14 @@ final class ESP32Client: ObservableObject {
         components.port = port
         components.path = path
         guard let url = components.url else { throw ClientError.invalidEndpoint }
+        guard let token = SharedDefaults.store.string(forKey: "esp32Token"),
+              !token.isEmpty else { throw ClientError.missingControlToken }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
         request.timeoutInterval = 3
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ClientError.invalidResponse
@@ -163,6 +166,7 @@ final class ESP32Client: ObservableObject {
 
     enum ClientError: LocalizedError {
         case invalidEndpoint
+        case missingControlToken
         case invalidResponse
         case invalidProtocolVersion(Int)
         case mismatchedAcknowledgement
@@ -173,6 +177,7 @@ final class ESP32Client: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .invalidEndpoint: return "IP 地址或端口无效"
+            case .missingControlToken: return "请填写设备串口显示的配对令牌"
             case .invalidResponse: return "设备响应无效"
             case .invalidProtocolVersion(let value): return "协议版本不兼容：\(value)"
             case .mismatchedAcknowledgement: return "确认序号与指令不一致"

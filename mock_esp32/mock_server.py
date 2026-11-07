@@ -7,7 +7,9 @@ This is a development server only. It never controls Bluetooth HID hardware.
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
+import secrets
 import threading
 import time
 from dataclasses import dataclass, field
@@ -34,6 +36,8 @@ class MockDeviceState:
     def execute(self, command: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         command_id = command.get("id")
         action = command.get("action")
+        if command.get("version") != 1:
+            return HTTPStatus.BAD_REQUEST, {"error": "unsupported protocol version"}
         if not isinstance(command_id, int) or command_id < 0:
             return HTTPStatus.BAD_REQUEST, self._ack(0, "REJECTED", "id must be a non-negative integer")
         if action not in ACTIONS:
@@ -61,15 +65,18 @@ class MockDeviceState:
 class MockESP32Server(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address: tuple[str, int], state: MockDeviceState):
+    def __init__(self, address: tuple[str, int], state: MockDeviceState, token: str):
         super().__init__(address, MockESP32Handler)
         self.device_state = state
+        self.control_token = token
 
 
 class MockESP32Handler(BaseHTTPRequestHandler):
     server: MockESP32Server
 
     def do_GET(self) -> None:
+        if not self._authorized():
+            return
         if self.path != "/v1/health":
             self._send(HTTPStatus.NOT_FOUND, {"error": "not found"})
             return
@@ -79,6 +86,8 @@ class MockESP32Handler(BaseHTTPRequestHandler):
         )
 
     def do_POST(self) -> None:
+        if not self._authorized():
+            return
         if self.path != "/v1/command":
             self._send(HTTPStatus.NOT_FOUND, {"error": "not found"})
             return
@@ -92,6 +101,14 @@ class MockESP32Handler(BaseHTTPRequestHandler):
             time.sleep(self.server.device_state.delay_ms / 1000)
         status, response = self.server.device_state.execute(payload)
         self._send(status, response)
+
+    def _authorized(self) -> bool:
+        supplied = self.headers.get("Authorization", "")
+        expected = f"Bearer {self.server.control_token}"
+        if hmac.compare_digest(supplied, expected):
+            return True
+        self._send(HTTPStatus.UNAUTHORIZED, {"error": "control token required"})
+        return False
 
     def _send(self, status: int, payload: dict[str, Any]) -> None:
         data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
@@ -108,18 +125,19 @@ class MockESP32Handler(BaseHTTPRequestHandler):
         print("mock-esp32:", fmt % args)
 
 
-def create_server(host: str, port: int, delay_ms: int = 0) -> MockESP32Server:
-    return MockESP32Server((host, port), MockDeviceState(delay_ms=delay_ms))
+def create_server(host: str, port: int, delay_ms: int = 0, token: str | None = None) -> MockESP32Server:
+    return MockESP32Server((host, port), MockDeviceState(delay_ms=delay_ms), token or secrets.token_hex(16))
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="OpenClaw mock ESP32-S3 HTTP server")
-    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=3333)
     parser.add_argument("--delay-ms", type=int, default=0)
     args = parser.parse_args()
     server = create_server(args.host, args.port, args.delay_ms)
     print(f"Mock ESP32-S3 listening on http://{args.host}:{args.port}")
+    print(f"Private pairing token for this run: {server.control_token}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -130,3 +148,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

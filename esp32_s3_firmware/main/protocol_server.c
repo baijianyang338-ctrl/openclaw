@@ -10,13 +10,18 @@
 #include "esp_check.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_random.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "hid_control.h"
+#include "nvs.h"
 
 #define MAX_COMMAND_BODY 2048
 #define RECENT_COMMAND_COUNT 64
 #define HTTP_STATUS_CONFLICT "409 Conflict"
+#define HTTP_STATUS_UNAUTHORIZED "401 Unauthorized"
+#define CONTROL_TOKEN_BYTES 16
+#define CONTROL_TOKEN_HEX_LENGTH (CONTROL_TOKEN_BYTES * 2)
 
 static const char *TAG = "openclaw_http";
 static httpd_handle_t s_server;
@@ -25,6 +30,56 @@ static uint64_t s_recent_ids[RECENT_COMMAND_COUNT];
 static size_t s_recent_count;
 static size_t s_recent_cursor;
 static bool s_stopped;
+static char s_control_token[CONTROL_TOKEN_HEX_LENGTH + 1];
+
+static esp_err_t initialize_control_token(void)
+{
+    nvs_handle_t handle;
+    esp_err_t result = nvs_open("openclaw", NVS_READWRITE, &handle);
+    if (result != ESP_OK) {
+        return result;
+    }
+    size_t length = sizeof(s_control_token);
+    result = nvs_get_str(handle, "control_token", s_control_token, &length);
+    if (result == ESP_ERR_NVS_NOT_FOUND) {
+        uint8_t random_bytes[CONTROL_TOKEN_BYTES];
+        static const char digits[] = "0123456789abcdef";
+        esp_fill_random(random_bytes, sizeof(random_bytes));
+        for (size_t i = 0; i < CONTROL_TOKEN_BYTES; ++i) {
+            s_control_token[i * 2] = digits[random_bytes[i] >> 4];
+            s_control_token[i * 2 + 1] = digits[random_bytes[i] & 15];
+        }
+        s_control_token[CONTROL_TOKEN_HEX_LENGTH] = '\0';
+        result = nvs_set_str(handle, "control_token", s_control_token);
+        if (result == ESP_OK) {
+            result = nvs_commit(handle);
+        }
+    }
+    nvs_close(handle);
+    if (result != ESP_OK || strlen(s_control_token) != CONTROL_TOKEN_HEX_LENGTH) {
+        return result == ESP_OK ? ESP_ERR_INVALID_SIZE : result;
+    }
+    ESP_LOGW(TAG, "Private pairing token for iPhone setup: %s", s_control_token);
+    return ESP_OK;
+}
+
+static bool request_is_authorized(httpd_req_t *request)
+{
+    const size_t length = httpd_req_get_hdr_value_len(request, "Authorization");
+    if (length != sizeof("Bearer ") - 1 + CONTROL_TOKEN_HEX_LENGTH) {
+        return false;
+    }
+    char header[sizeof("Bearer ") + CONTROL_TOKEN_HEX_LENGTH];
+    if (httpd_req_get_hdr_value_str(request, "Authorization", header, sizeof(header)) != ESP_OK ||
+        strncmp(header, "Bearer ", sizeof("Bearer ") - 1) != 0) {
+        return false;
+    }
+    unsigned difference = 0;
+    for (size_t i = 0; i < CONTROL_TOKEN_HEX_LENGTH; ++i) {
+        difference |= (unsigned)(header[sizeof("Bearer ") - 1 + i] ^ s_control_token[i]);
+    }
+    return difference == 0;
+}
 
 static esp_err_t send_json(httpd_req_t *request, const char *status, cJSON *object)
 {
@@ -145,6 +200,10 @@ static bool is_ascii_text(const char *text)
 
 static esp_err_t health_handler(httpd_req_t *request)
 {
+    if (!request_is_authorized(request)) {
+        httpd_resp_set_hdr(request, "WWW-Authenticate", "Bearer");
+        return send_error(request, HTTP_STATUS_UNAUTHORIZED, "control token required");
+    }
     cJSON *object = cJSON_CreateObject();
     cJSON_AddStringToObject(object, "status", "ok");
     cJSON_AddStringToObject(object, "device", "OpenClaw ESP32-S3");
@@ -258,6 +317,10 @@ static esp_err_t execute_command(
 
 static esp_err_t command_handler(httpd_req_t *request)
 {
+    if (!request_is_authorized(request)) {
+        httpd_resp_set_hdr(request, "WWW-Authenticate", "Bearer");
+        return send_error(request, HTTP_STATUS_UNAUTHORIZED, "control token required");
+    }
     if (request->content_len <= 0 || request->content_len > MAX_COMMAND_BODY) {
         return send_error(request, HTTPD_400, "invalid Content-Length");
     }
@@ -288,6 +351,11 @@ static esp_err_t command_handler(httpd_req_t *request)
     }
 
     uint64_t command_id;
+    cJSON *version = cJSON_GetObjectItemCaseSensitive(root, "version");
+    if (!cJSON_IsNumber(version) || version->valuedouble != 1) {
+        cJSON_Delete(root);
+        return send_error(request, HTTPD_400, "unsupported protocol version");
+    }
     if (!get_command_id(root, &command_id)) {
         cJSON_Delete(root);
         return send_ack(request, HTTPD_400, 0, "REJECTED",
@@ -317,6 +385,7 @@ static esp_err_t command_handler(httpd_req_t *request)
 
 esp_err_t protocol_server_start(void)
 {
+    ESP_RETURN_ON_ERROR(initialize_control_token(), TAG, "control token initialization failed");
     s_state_lock = xSemaphoreCreateMutex();
     if (s_state_lock == NULL) {
         return ESP_ERR_NO_MEM;
@@ -346,3 +415,4 @@ esp_err_t protocol_server_start(void)
     ESP_LOGI(TAG, "Control server listening on port %d", CONFIG_OPENCLAW_HTTP_PORT);
     return ESP_OK;
 }
+

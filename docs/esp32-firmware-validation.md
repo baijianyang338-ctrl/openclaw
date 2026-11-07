@@ -30,6 +30,12 @@ confirmed ESP32-S3, DIO at 80 MHz, and a 16 MB flash header. The application
 image is 851,184 bytes, with 45% of its app partition free. The local Wi-Fi
 SSID and password remain unconfigured, and this image has not been flashed.
 
+After adding NVS-backed control-token authentication and rejection of open
+Wi-Fi, the firmware was rebuilt successfully with ESP-IDF 6.1. The resulting
+16 MB image is 852,768 bytes (`0xd0320`) with 44% of the app partition free.
+This is a compile result; no physical Wi-Fi, BLE, or authorization test has
+been performed on the board yet.
+
 The COM port is transient and must be rechecked immediately before flashing.
 
 ## Host-side protocol tests

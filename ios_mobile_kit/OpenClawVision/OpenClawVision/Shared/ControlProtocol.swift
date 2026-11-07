@@ -12,6 +12,7 @@ enum ControlAction: String, Codable, CaseIterable {
 }
 
 struct ControlCommand: Codable, Equatable {
+    let version: Int
     let id: UInt64
     let action: ControlAction
     var x: Int?
@@ -33,6 +34,7 @@ struct ControlCommand: Codable, Equatable {
         text: String? = nil,
         createdAt: Date = Date()
     ) {
+        self.version = 1
         self.id = id
         self.action = action
         self.x = x

@@ -83,7 +83,14 @@ final class SampleHandler: RPBroadcastSampleHandler {
             try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up).perform([request])
             let recognized = (request.results ?? []).compactMap { observation -> RecognizedText? in
                 guard let candidate = observation.topCandidates(1).first else { return nil }
-                return RecognizedText(text: candidate.string, confidence: candidate.confidence)
+                let bounds = observation.boundingBox
+                let box = NormalizedRect(
+                    x: Float(bounds.minX),
+                    y: Float(bounds.minY),
+                    width: Float(bounds.width),
+                    height: Float(bounds.height)
+                )
+                return RecognizedText(text: candidate.string, confidence: candidate.confidence, box: box)
             }
             guard !recognized.isEmpty else {
                 ruleConsensus.reset()
@@ -149,6 +156,11 @@ final class SampleHandler: RPBroadcastSampleHandler {
         guard !didProbeESP32 else { return }
         didProbeESP32 = true
         let host = SharedDefaults.store.string(forKey: "esp32Host") ?? "192.168.4.1"
+        guard let token = SharedDefaults.store.string(forKey: "esp32Token"), !token.isEmpty else {
+            telemetry.networkProbeStatus = "未配置设备配对令牌"
+            telemetry.save()
+            return
+        }
         let savedPort = SharedDefaults.store.integer(forKey: "esp32Port")
         let port = savedPort == 0 ? 3333 : savedPort
         guard (1...65535).contains(port),
@@ -166,6 +178,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
         }
         var request = URLRequest(url: url)
         request.timeoutInterval = 3
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let startedAt = Date()
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             self?.processingQueue.async { [weak self] in

@@ -11,6 +11,8 @@ Implemented now:
 - `MOVE`, `CLICK`, `PRESS`, `RELEASE`, `SCROLL`, ASCII `TYPE`, `STOP`, and
   `PING`.
 - Recent command ID deduplication and an emergency-stop latch.
+- A random 128-bit bearer token generated on first boot and retained in NVS;
+  both HTTP routes reject requests without that token.
 - Accurate failure responses when BLE is disconnected or a command cannot be
   represented safely.
 
@@ -24,6 +26,11 @@ Implemented now:
 
 No Wi-Fi password, signing key, API key, or other credential belongs in Git.
 The generated `sdkconfig` is intentionally ignored.
+The local Wi-Fi network must use WPA2/WPA3 with a password of at least eight
+characters. Read the generated control token from the private serial monitor
+after flashing and enter it in the iPhone app. Do not paste it into a Git issue
+or commit it to the repository. The control API uses HTTP on the local network;
+TLS has not yet been implemented.
 
 ## Configure and build
 
