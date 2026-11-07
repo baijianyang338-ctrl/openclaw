@@ -43,6 +43,12 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
+                    if let probeStatus = telemetry.networkProbeStatus {
+                        LabeledContent("广播扩展网络探测", value: probeStatus)
+                    }
+                    if let latency = telemetry.networkProbeLatencyMilliseconds {
+                        LabeledContent("探测延迟", value: String(format: "%.0f ms", latency))
+                    }
                     Button(processingPaused ? "继续本地识别" : "暂停本地识别") {
                         processingPaused.toggle()
                     }

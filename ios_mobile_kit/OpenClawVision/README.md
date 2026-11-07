@@ -10,7 +10,8 @@
 - 采集遥测：记录实际接收帧率、累计帧数、最近画面时间、OCR 耗时和失败原因。
 - HTTP JSON：主应用支持健康检查、带序号指令、执行确认、重复保护语义、3 秒超时和紧急停止，默认 `192.168.4.1:3333`。
 - 单任务状态机：严格使用 `IDLE → SEARCHING → DETECTED → READING_RULES → READY → EXECUTING → VERIFYING → WAITING_RESULT → FINISHED`，非法跳转进入 `ERROR`。
-- 动态评论：从每次 OCR 结果重新提取评论原文，要求连续两帧完全一致且平均置信度不低于 65%，否则保持暂停等待复核。
+- 动态评论：从每次 OCR 结果重新提取评论原文，目标行置信度至少 80%，同一画面没有冲突文本，且连续三帧完全一致后才进入 `READY`。
+- 广播扩展在规则确认后执行一次只读 `GET /v1/health`，把局域网探测状态和延迟写入 App Group，供真机跨 App 联调查看；该请求不会触发设备动作。
 - 无第三方依赖，不包含任何账号、密钥、证书或描述文件。
 
 工程的最低部署版本是 iOS 18.0，因此可在运行 iOS 26.6.2 的 iPhone 16 Pro 上使用。实际 SDK 由 Codemagic 的 `xcode: latest` 提供。
@@ -46,7 +47,7 @@ xcodebuild \
 
 屏幕采集必须由用户通过系统界面明确启动；应用没有绕过系统确认或后台静默启动采集的代码。Vision OCR 在设备本地执行，工程不会保存原始画面。
 
-Apple 在较新的 SDK 中已将部分 ReplayKit 广播 API 标记为 deprecated，并推荐新项目评估 ScreenCaptureKit。当前仍保留 Broadcast Upload Extension，是为了满足系统级广播扩展方案和现阶段设备兼容性；后续迁移时可保留 `OCRResult` 与 UDP 层，只替换帧采集入口。
+Apple 在较新的 SDK 中已将部分 ReplayKit 广播 API 标记为 deprecated，并推荐新项目评估 ScreenCaptureKit。当前仍保留 Broadcast Upload Extension，是为了满足系统级广播扩展方案和现阶段设备兼容性；后续迁移时可保留 `OCRResult` 与 HTTP 控制层，只替换帧采集入口。
 
 跨 App 持续采集必须在签名真机上验证。模拟器和无签名 Codemagic 构建只能证明工程可编译及扩展可正确嵌入，不能证明抖音前台运行时一定能持续提供画面。
 
@@ -66,3 +67,4 @@ python -m unittest discover -s mock_esp32/tests -v
 ```
 
 真实设备必须缓存近期指令序号并对重复请求返回 `DUPLICATE`，不得重复执行。`TYPE` 保留 UTF-8 原文，但中文输入仍需后续与 iOS 原生输入法进行真机标定。
+

@@ -25,6 +25,9 @@ struct CaptureTelemetry: Codable, Equatable {
     var lastFrameAt: Date?
     var lastOCRDurationMilliseconds: Double?
     var failureReason: String?
+    var lastNetworkProbeAt: Date?
+    var networkProbeLatencyMilliseconds: Double?
+    var networkProbeStatus: String?
 
     static let empty = CaptureTelemetry(
         state: .idle,
@@ -32,7 +35,10 @@ struct CaptureTelemetry: Codable, Equatable {
         receivedFrameCount: 0,
         lastFrameAt: nil,
         lastOCRDurationMilliseconds: nil,
-        failureReason: nil
+        failureReason: nil,
+        lastNetworkProbeAt: nil,
+        networkProbeLatencyMilliseconds: nil,
+        networkProbeStatus: nil
     )
 
     func save() {
@@ -48,3 +54,4 @@ struct CaptureTelemetry: Codable, Equatable {
         return telemetry
     }
 }
+

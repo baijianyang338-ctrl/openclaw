@@ -13,6 +13,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
     private var fpsWindowFrameCount = 0
     private let stateMachine = AutomationStateMachine()
     private let ruleConsensus = RuleConsensusEvaluator()
+    private var didProbeESP32 = false
 
     override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
         lastProcessedTimestamp = .invalid
@@ -24,6 +25,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
         stateMachine.reset()
         _ = stateMachine.transition(to: .searching, message: "正在画面中寻找福袋")
         ruleConsensus.reset()
+        didProbeESP32 = false
     }
 
     override func broadcastPaused() {
@@ -140,6 +142,50 @@ final class SampleHandler: RPBroadcastSampleHandler {
             countdownSeconds: confirmed.countdownSeconds
         )
         _ = stateMachine.transition(to: .ready, message: "规则已确认，等待安全执行")
+        probeESP32Health()
+    }
+
+    private func probeESP32Health() {
+        guard !didProbeESP32 else { return }
+        didProbeESP32 = true
+        let host = SharedDefaults.store.string(forKey: "esp32Host") ?? "192.168.4.1"
+        let savedPort = SharedDefaults.store.integer(forKey: "esp32Port")
+        let port = savedPort == 0 ? 3333 : savedPort
+        guard (1...65535).contains(port),
+              var components = URLComponents(string: "http://\(host)") else {
+            telemetry.networkProbeStatus = "ESP32 地址无效"
+            telemetry.save()
+            return
+        }
+        components.port = port
+        components.path = "/v1/health"
+        guard let url = components.url else {
+            telemetry.networkProbeStatus = "ESP32 地址无效"
+            telemetry.save()
+            return
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 3
+        let startedAt = Date()
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            self?.processingQueue.async { [weak self] in
+                guard let self, self.telemetry.state == .running else { return }
+                self.telemetry.lastNetworkProbeAt = Date()
+                self.telemetry.networkProbeLatencyMilliseconds = Date().timeIntervalSince(startedAt) * 1_000
+                if let error {
+                    self.telemetry.networkProbeStatus = "连接失败：\(error.localizedDescription)"
+                } else if let http = response as? HTTPURLResponse,
+                          http.statusCode == 200,
+                          let data,
+                          let health = try? JSONDecoder().decode(ESP32Health.self, from: data),
+                          health.protocolVersion == 1 {
+                    self.telemetry.networkProbeStatus = "已响应：\(health.device)"
+                } else {
+                    self.telemetry.networkProbeStatus = "健康检查响应无效"
+                }
+                self.telemetry.save()
+            }
+        }.resume()
     }
 
     private func recordReceivedFrame() {
