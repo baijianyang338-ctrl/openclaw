@@ -2,6 +2,8 @@
 
 本协议用于 iPhone 与 ESP32-S3 在同一局域网内通信。传输层为 HTTP，负载为 UTF-8 JSON。Mock 服务实现于 `mock_esp32/`；真实固件必须保持相同语义。
 
+真实 ESP-IDF 固件位于 `esp32_s3_firmware/`。当前实现使用 BLE HID 控制 iPhone，并通过本协议接收局域网指令。
+
 ## 端点
 
 - `GET /v1/health`：连接测试与协议版本协商。
@@ -29,6 +31,14 @@
 - `durationMilliseconds` 用于按住时长。
 - `text` 必须原样保留 UTF-8，但 `TYPE` 并不保证真实固件可以直接输入任意中文；中文输入策略需要与 iOS 原生输入法联合标定。
 - `STOP` 为最高优先级，设备收到后立即释放所有按键/鼠标并进入停止锁存状态。
+
+### 当前真机固件边界
+
+- `MOVE` 只接受相对位移 `deltaX/deltaY`。在完成 iPhone 指针加速度和屏幕坐标标定前，带 `x/y` 的绝对移动会被拒绝。
+- `CLICK` 点击当前指针位置；带 `x/y` 的点击会被拒绝，避免未标定时误触。
+- `TYPE` 当前只执行非空 ASCII。包含中文或其他非 ASCII UTF-8 的文本在发送任何按键前会被拒绝。
+- `STOP` 锁存后需重启 ESP32-S3 才能恢复普通动作；诊断用 `PING` 仍可执行。
+- BLE HID 未与 iPhone 连接时，动作会返回 `REJECTED`，不会伪报执行成功。
 
 ## 确认
 

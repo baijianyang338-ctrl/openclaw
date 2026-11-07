@@ -1,0 +1,26 @@
+menu "OpenClaw ESP32-S3 Configuration"
+
+    config OPENCLAW_WIFI_SSID
+        string "Wi-Fi SSID"
+        default ""
+        help
+            Local Wi-Fi network used by both the iPhone and ESP32-S3.
+            Do not commit the generated sdkconfig file.
+
+    config OPENCLAW_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default ""
+        help
+            WPA/WPA2 password. The generated sdkconfig file is ignored by Git.
+
+    config OPENCLAW_WIFI_MAXIMUM_RETRY
+        int "Maximum Wi-Fi retries"
+        range 1 100
+        default 10
+
+    config OPENCLAW_HTTP_PORT
+        int "HTTP control port"
+        range 1 65535
+        default 3333
+
+endmenu
