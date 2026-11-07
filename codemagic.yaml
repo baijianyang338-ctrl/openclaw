@@ -12,6 +12,10 @@ workflows:
       cache_paths:
         - $HOME/Library/Developer/Xcode/DerivedData
     scripts:
+      - name: Test Mock ESP32 protocol
+        script: |
+          set -euo pipefail
+          python3 -m unittest discover -s mock_esp32/tests -v
       - name: Show Xcode environment
         script: |
           set -euo pipefail

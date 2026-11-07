@@ -22,6 +22,11 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>将本机识别出的屏幕文字发送到同一 Wi-Fi 网络中的 ESP32-S3。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

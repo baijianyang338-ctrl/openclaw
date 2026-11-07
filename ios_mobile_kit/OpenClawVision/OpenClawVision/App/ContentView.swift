@@ -6,8 +6,10 @@ struct ContentView: View {
     @AppStorage("esp32Host", store: SharedDefaults.store) private var esp32Host = "192.168.4.1"
     @AppStorage("esp32Port", store: SharedDefaults.store) private var esp32Port = 3333
     @AppStorage(AppConstants.processingPausedKey, store: SharedDefaults.store) private var processingPaused = false
+    @StateObject private var esp32Client = ESP32Client()
     @State private var latestResult = OCRResult.empty
     @State private var telemetry = CaptureTelemetry.empty
+    @State private var automation = AutomationSnapshot.idle
     private let refreshTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -48,13 +50,37 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("ESP32-S3 UDP") {
+                Section("任务状态") {
+                    LabeledContent("状态", value: automation.state.rawValue)
+                    LabeledContent("说明", value: automation.lastMessage)
+                    if let comment = automation.requiredComment {
+                        LabeledContent("目标评论", value: comment)
+                    }
+                    if let confidence = automation.confidence {
+                        LabeledContent("识别置信度", value: String(format: "%.1f%%", confidence * 100))
+                    }
+                    if let countdown = automation.countdownSeconds {
+                        LabeledContent("倒计时", value: "\(countdown) 秒")
+                    }
+                }
+
+                Section("ESP32-S3 HTTP") {
                     TextField("IP 地址", text: $esp32Host)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.numbersAndPunctuation)
                     TextField("端口", value: $esp32Port, format: .number)
                         .keyboardType(.numberPad)
-                    Text("扩展会把最新 OCR 结果以 UTF-8 JSON 数据报发送到这个地址。")
+                    LabeledContent("连接状态", value: esp32Client.state.displayName)
+                    Button("测试连接") {
+                        Task { await esp32Client.testConnection(host: esp32Host, port: esp32Port) }
+                    }
+                    Button("发送 PING") {
+                        Task { _ = try? await esp32Client.send(action: .ping, host: esp32Host, port: esp32Port) }
+                    }
+                    Button("紧急停止", role: .destructive) {
+                        Task { await esp32Client.emergencyStop(host: esp32Host, port: esp32Port) }
+                    }
+                    Text("正式协议使用 HTTP JSON、指令序号与执行确认；重复序号必须由设备拒绝重复执行。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -69,6 +95,11 @@ struct ContentView: View {
                     }
                     if let date = latestResult.capturedAt {
                         Text(date, style: .relative)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let confidence = latestResult.averageConfidence {
+                        Text("平均置信度：\(String(format: "%.1f%%", confidence * 100))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -88,5 +119,6 @@ struct ContentView: View {
     private func reloadResult() {
         latestResult = OCRResult.load()
         telemetry = CaptureTelemetry.load()
+        automation = AutomationSnapshot.load()
     }
 }

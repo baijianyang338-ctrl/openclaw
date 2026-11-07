@@ -8,7 +8,9 @@
 - `OpenClawBroadcast`：ReplayKit Broadcast Upload Extension，限频读取视频帧并用 `VNRecognizeTextRequest` 做中英文 OCR。
 - App Group：在主应用与扩展间共享配置和识别结果。
 - 采集遥测：记录实际接收帧率、累计帧数、最近画面时间、OCR 耗时和失败原因。
-- UDP：扩展将 `OCRResult` JSON 数据报发送到用户配置的 IP/端口，默认 `192.168.4.1:3333`。
+- HTTP JSON：主应用支持健康检查、带序号指令、执行确认、重复保护语义、3 秒超时和紧急停止，默认 `192.168.4.1:3333`。
+- 单任务状态机：严格使用 `IDLE → SEARCHING → DETECTED → READING_RULES → READY → EXECUTING → VERIFYING → WAITING_RESULT → FINISHED`，非法跳转进入 `ERROR`。
+- 动态评论：从每次 OCR 结果重新提取评论原文，要求连续两帧完全一致且平均置信度不低于 65%，否则保持暂停等待复核。
 - 无第三方依赖，不包含任何账号、密钥、证书或描述文件。
 
 工程的最低部署版本是 iOS 18.0，因此可在运行 iOS 26.6.2 的 iPhone 16 Pro 上使用。实际 SDK 由 Codemagic 的 `xcode: latest` 提供。
@@ -48,12 +50,19 @@ Apple 在较新的 SDK 中已将部分 ReplayKit 广播 API 标记为 deprecated
 
 跨 App 持续采集必须在签名真机上验证。模拟器和无签名 Codemagic 构建只能证明工程可编译及扩展可正确嵌入，不能证明抖音前台运行时一定能持续提供画面。
 
-## ESP32-S3 协议草案
+## ESP32-S3 协议
 
-每个 UDP 数据报是 UTF-8 JSON：
+完整协议见仓库 `docs/esp32-control-protocol-v1.md`。示例指令：
 
 ```json
-{"lines":["示例文字","OPENCLAW"],"capturedAt":783648000}
+{"id":1001,"action":"CLICK","x":250,"y":600,"createdAt":"2026-11-07T10:00:00Z"}
 ```
 
-`capturedAt` 使用 `Codable` 默认的 Apple reference date 秒数。固件端应限制报文长度、校验 JSON，并允许丢包；UDP 不保证到达或顺序。如后续需要确认与重传，可将 `sendToESP32` 替换为 TCP/WebSocket 层。
+Mock 服务位于仓库 `mock_esp32/`，只模拟协议确认，不控制真实 HID：
+
+```sh
+python mock_esp32/mock_server.py --host 0.0.0.0 --port 3333
+python -m unittest discover -s mock_esp32/tests -v
+```
+
+真实设备必须缓存近期指令序号并对重复请求返回 `DUPLICATE`，不得重复执行。`TYPE` 保留 UTF-8 原文，但中文输入仍需后续与 iOS 原生输入法进行真机标定。

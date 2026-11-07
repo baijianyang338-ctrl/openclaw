@@ -6,6 +6,7 @@ enum AppConstants {
     static let ocrResultKey = "latestOCRResult"
     static let captureTelemetryKey = "captureTelemetry"
     static let processingPausedKey = "captureProcessingPaused"
+    static let automationSnapshotKey = "automationSnapshot"
 }
 
 enum SharedDefaults {
