@@ -41,19 +41,41 @@ started BLE HID advertising, initialized the chip temperature sensor, and
 obtained IPv4 address `172.20.10.2`. This is a real flash and boot observation,
 not yet an iPhone BLE pairing or phone-control verification.
 
-The final temperature-enabled application image is 1,315,280 bytes, SHA-256
-`D29E7432113B8BD34FB73D21B70AE2ABB92D42CC77D88938262AED2B23D2F154`.
+The latest application image is 1,315,760 bytes, SHA-256
+`67B1A4AA38BED07C41C8FD35181D451122002F244ED2CC07CB22A826EFC22737`.
 It was flashed with `esptool write-flash` after the successful ESP-IDF 6.1
 build. A fresh serial boot capture confirmed both 16-character pairing-token
-parts, BLE advertising, temperature-sensor initialization and the IPv4 address.
+parts, successful BLE advertising configuration and start, temperature-sensor
+initialization and the IPv4 address.
 The actual token was withheld from this record.
 
-The Windows PC was on a different Wi-Fi network at this check. TCP to the
-board's port `3333` therefore failed; HTTP authentication, PING and command
-execution against the physical board remain unverified. A private local NVS
-read confirmed a 32-character control token exists, without printing or
-committing it. The board and test client must be on the same LAN for the next
-HTTP test.
+Initially, the Windows PC was on a different Wi-Fi network, and TCP to port
+`3333` failed. After the PC joined the board's LAN, the physical HTTP test
+returned HTTP 401 without a token, HTTP 200 for authenticated health, HTTP
+200/`EXECUTED` for PING, and `DUPLICATE` for an identical command ID. Health
+reported protocol v1, chip temperature 33-35 °C, and no overheat. No response
+contained the token. A private local NVS read confirmed a 32-character token;
+its value was never printed or committed.
+
+The first BLE advertising payload exceeded the legacy packet limit and the
+serial log reported a partial write. A subsequent structured-data attempt
+failed with code 258. The current firmware uses an explicit 28-byte packet
+containing the HID service UUID and full device name; the serial log confirms
+both data configuration and advertising start. The user then paired
+`OpenClaw Controller` with the iPhone, and the board's health endpoint reported
+`bleConnected: true`.
+
+A relative `MOVE` command first returned HTTP 200/`EXECUTED` with “BLE HID
+report sent”, but the user saw no pointer motion. An authenticated STOP then
+returned `EXECUTED`, and health confirmed `stopped: true`. Apple documents
+that iPhone mouse pointer use requires AssistiveTouch to be enabled
+([Apple Support](https://support.apple.com/zh-cn/111775)). After the user
+enabled AssistiveTouch, the board was rebooted to clear the stop latch, BLE
+reconnected, and health reported `bleConnected: true`. A second relative
+`MOVE` (`deltaX: 30`) returned `EXECUTED`; the user confirmed the gray iPhone
+pointer moved to the right. This verifies one real Wi-Fi → ESP32 → BLE HID →
+iPhone pointer-movement path. It does not verify clicking, scrolling, keyboard
+input, coordinate calibration, or activity participation.
 
 The COM port is transient and must be rechecked immediately before flashing.
 
@@ -77,8 +99,8 @@ python -m unittest discover -s mock_esp32/tests -v
 
 ## Still requiring hardware verification
 
-- HTTP authorization, PING, deduplication, STOP and temperature status on the
-  actual board after the test client joins the same Wi-Fi network.
+- iPhone click, scroll, key events, precise pointer calibration, and repeated
+  disconnect/reconnect cycles. One automatic BLE reconnect was observed.
 - iPhone Bluetooth pairing and reconnect behavior.
 - Mouse direction, scroll direction, pointer acceleration, and absolute
   coordinate calibration.

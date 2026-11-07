@@ -119,8 +119,10 @@ static void hid_event_callback(
     const esp_hidd_event_t event = (esp_hidd_event_t)id;
     switch (event) {
     case ESP_HIDD_START_EVENT:
-        ESP_LOGI(TAG, "BLE HID started; advertising");
-        esp_hid_ble_gap_adv_start();
+        ESP_LOGI(TAG, "BLE HID started; requesting advertising");
+        if (esp_hid_ble_gap_adv_start() != ESP_OK) {
+            ESP_LOGE(TAG, "BLE advertising request failed");
+        }
         break;
     case ESP_HIDD_CONNECT_EVENT:
         s_connected = true;
@@ -130,7 +132,9 @@ static void hid_event_callback(
         s_connected = false;
         s_mouse_buttons = 0;
         ESP_LOGW(TAG, "BLE HID disconnected; advertising again");
-        esp_hid_ble_gap_adv_start();
+        if (esp_hid_ble_gap_adv_start() != ESP_OK) {
+            ESP_LOGE(TAG, "BLE advertising restart failed");
+        }
         break;
     case ESP_HIDD_STOP_EVENT:
         s_connected = false;

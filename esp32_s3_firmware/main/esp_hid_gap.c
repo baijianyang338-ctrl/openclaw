@@ -556,12 +556,22 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_p
     /*
      * ADVERTISEMENT
      * */
-    case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
-        ESP_LOGV(TAG, "BLE GAP ADV_DATA_SET_COMPLETE");
+    case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
+        if (param->adv_data_raw_cmpl.status != ESP_BT_STATUS_SUCCESS) {
+            ESP_LOGE(TAG, "BLE advertising data configuration failed: %d",
+                     param->adv_data_raw_cmpl.status);
+        } else {
+            ESP_LOGI(TAG, "BLE advertising data configured");
+        }
         break;
 
     case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
-        ESP_LOGV(TAG, "BLE GAP ADV_START_COMPLETE");
+        if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
+            ESP_LOGE(TAG, "BLE advertising start failed: %d",
+                     param->adv_start_cmpl.status);
+        } else {
+            ESP_LOGI(TAG, "BLE advertising started");
+        }
         break;
 
     /*
@@ -655,25 +665,16 @@ esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name)
 {
 
     esp_err_t ret;
+    (void)appearance;
 
-    const uint8_t hidd_service_uuid128[] = {
-        0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80, 0x00, 0x10, 0x00, 0x00, 0x12, 0x18, 0x00, 0x00,
-    };
-
-    esp_ble_adv_data_t ble_adv_data = {
-        .set_scan_rsp = false,
-        .include_name = true,
-        .include_txpower = true,
-        .min_interval = 0x0006, //slave connection min interval, Time = min_interval * 1.25 msec
-        .max_interval = 0x0010, //slave connection max interval, Time = max_interval * 1.25 msec
-        .appearance = appearance,
-        .manufacturer_len = 0,
-        .p_manufacturer_data =  NULL,
-        .service_data_len = 0,
-        .p_service_data = NULL,
-        .service_uuid_len = sizeof(hidd_service_uuid128),
-        .p_service_uuid = (uint8_t *)hidd_service_uuid128,
-        .flag = 0x6,
+    // Legacy advertising allows at most 31 bytes. The raw 28-byte packet has
+    // discoverable flags, standard HID UUID 0x1812, and the complete name.
+    static uint8_t hidd_adv_data[] = {
+        0x02, 0x01, 0x06,
+        0x03, 0x03, 0x12, 0x18,
+        0x14, 0x09,
+        'O', 'p', 'e', 'n', 'C', 'l', 'a', 'w', ' ',
+        'C', 'o', 'n', 't', 'r', 'o', 'l', 'l', 'e', 'r',
     };
 
     esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;
@@ -721,8 +722,8 @@ esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name)
         return ret;
     }
 
-    if ((ret = esp_ble_gap_config_adv_data(&ble_adv_data)) != ESP_OK) {
-        ESP_LOGE(TAG, "GAP config_adv_data failed: %d", ret);
+    if ((ret = esp_ble_gap_config_adv_data_raw(hidd_adv_data, sizeof(hidd_adv_data))) != ESP_OK) {
+        ESP_LOGE(TAG, "GAP config_adv_data_raw failed: %d", ret);
         return ret;
     }
 

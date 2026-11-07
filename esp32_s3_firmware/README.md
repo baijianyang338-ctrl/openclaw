@@ -73,6 +73,10 @@ Win32_SerialPort` again before flashing.
 ## Pair and test
 
 1. On iPhone, open Settings > Bluetooth and pair `OpenClaw Controller`.
+   Then open Settings > Accessibility > Touch > AssistiveTouch, turn it on,
+   and check the device under AssistiveTouch > Devices. Apple requires
+   AssistiveTouch for a visible iPhone mouse pointer; see
+   [Apple Support](https://support.apple.com/zh-cn/111775).
 2. Read the board's IPv4 address from the serial monitor or router.
 3. Enter that address, port `3333`, and the local serial pairing token in the
    OpenClaw iPhone app. The iPhone must be on the same Wi-Fi LAN as the board.
