@@ -77,6 +77,15 @@ pointer moved to the right. This verifies one real Wi-Fi → ESP32 → BLE HID �
 iPhone pointer-movement path. It does not verify clicking, scrolling, keyboard
 input, coordinate calibration, or activity participation.
 
+For the next click test, an iPhone Safari page served from the Windows PC was
+loaded successfully. The user tapped its blue area by finger and the server
+count increased from 0 to 1, proving the page's click recorder works. One HID
+`CLICK`, then a separate 300 ms `PRESS`/`RELEASE`, both returned `EXECUTED`
+from the ESP32, but the server count did not increase. The click path is **not
+verified**; the pointer position and iPhone button mapping need further
+diagnosis. The final authenticated `STOP` returned `EXECUTED` and health
+confirmed `stopped: true`. The temporary page server was then shut down.
+
 The COM port is transient and must be rechecked immediately before flashing.
 
 ## Host-side protocol tests
