@@ -58,7 +58,12 @@ final class ESP32Client: ObservableObject {
             guard health.protocolVersion == 1 else {
                 throw ClientError.invalidProtocolVersion(health.protocolVersion)
             }
-            let details = health.bleConnected == true ? "蓝牙已连接" : "蓝牙未连接"
+            let details: String
+            switch health.bleConnected {
+            case true: details = "蓝牙已连接"
+            case false: details = "蓝牙未连接"
+            case nil: details = "蓝牙状态未知"
+            }
             state = .connected("\(health.device)，\(details)" + (health.stopped == true ? "，急停已锁定" : ""))
         } catch {
             state = .failed(error.localizedDescription)

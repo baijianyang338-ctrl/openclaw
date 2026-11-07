@@ -10,6 +10,8 @@ struct ContentView: View {
     @State private var latestResult = OCRResult.empty
     @State private var telemetry = CaptureTelemetry.empty
     @State private var automation = AutomationSnapshot.idle
+    @State private var manualText = ""
+    @State private var commandInFlight = false
     private let refreshTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -99,6 +101,43 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("鼠标与键盘联调") {
+                    Text("先在 iPhone 蓝牙设置中连接 OpenClaw Controller。下列操作由你逐次点击，用于确认指针方向、滚动和键盘映射。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        Spacer()
+                        Button("↑") { sendManual(.move, deltaY: -15) }
+                        Spacer()
+                    }
+                    HStack {
+                        Button("←") { sendManual(.move, deltaX: -15) }
+                        Spacer()
+                        Button("点击") { sendManual(.click) }
+                        Spacer()
+                        Button("→") { sendManual(.move, deltaX: 15) }
+                    }
+                    HStack {
+                        Spacer()
+                        Button("↓") { sendManual(.move, deltaY: 15) }
+                        Spacer()
+                    }
+                    HStack {
+                        Button("向上滚动") { sendManual(.scroll, deltaY: 1) }
+                        Spacer()
+                        Button("向下滚动") { sendManual(.scroll, deltaY: -1) }
+                    }
+                    TextField("测试英文和数字", text: $manualText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("发送测试文字") { sendManual(.type, text: manualText) }
+                        .disabled(manualText.isEmpty || !manualText.unicodeScalars.allSatisfy { $0.value < 128 })
+                    Text("当前固件仅支持 ASCII 键盘输入；中文评论需要另行验证输入法方案。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .disabled(commandInFlight)
+
                 Section("最新识别结果") {
                     if latestResult.lines.isEmpty {
                         Text("尚无结果")
@@ -134,6 +173,31 @@ struct ContentView: View {
         latestResult = OCRResult.load()
         telemetry = CaptureTelemetry.load()
         automation = AutomationSnapshot.load()
+    }
+
+    private func sendManual(
+        _ action: ControlAction,
+        deltaX: Int? = nil,
+        deltaY: Int? = nil,
+        text: String? = nil
+    ) {
+        guard !commandInFlight else { return }
+        commandInFlight = true
+        Task {
+            defer { commandInFlight = false }
+            do {
+                _ = try await esp32Client.send(
+                    action: action,
+                    host: esp32Host,
+                    port: esp32Port,
+                    deltaX: deltaX,
+                    deltaY: deltaY,
+                    text: text
+                )
+            } catch {
+                // ESP32Client publishes the exact failure in the connection section.
+            }
+        }
     }
 }
 
