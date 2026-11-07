@@ -34,6 +34,8 @@ xcodebuild \
 
 此流程会同时编译主应用和广播扩展，并验证 `.appex` 已嵌入 `.app`。无签名 `.app` 只能用于编译验证，不能直接安装到真机。
 
+`codemagic.yaml` 另提供手动启动的 `ios-native-adhoc` 工作流，用于在签名材料配置完成后生成 IPA。Codemagic 页面步骤、两份描述文件、设备登记和真机采集验收见 [签名与真机验证](../../docs/ios-signing-and-device-test.md)。
+
 ## 签名前必须修改
 
 在 Xcode 的 Signing & Capabilities 中为两个 Target 选择同一个 Team，并把下列示例标识改为你在 Apple Developer 中注册的唯一标识：
@@ -68,4 +70,3 @@ python -m unittest discover -s mock_esp32/tests -v
 ```
 
 真实设备必须缓存近期指令序号并对重复请求返回 `DUPLICATE`，不得重复执行。`TYPE` 保留 UTF-8 原文，但中文输入仍需后续与 iOS 原生输入法进行真机标定。
-
