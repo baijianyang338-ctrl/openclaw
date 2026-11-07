@@ -8,7 +8,27 @@
 - ESP-IDF 6.1 was present through Espressif Installation Manager but required
   its environment variables to be activated manually in the non-interactive
   terminal.
-- No flash, erase, reset, or serial write operation was performed.
+- The initial inspection did not access the serial bootloader.
+
+## Read-only board probe and 16 MB rebuild
+
+On 2026-11-07, `esptool flash-id` connected through `COM3` and reported an
+ESP32-S3 revision v0.2, 8 MB embedded PSRAM, and 16 MB quad flash. The probe
+used the serial bootloader and reset the board afterward; it did not read,
+erase, or write flash contents. The device MAC address is intentionally omitted
+from this repository.
+
+The earlier generated configuration used the ESP-IDF default 2 MB flash size.
+`sdkconfig.defaults` now selects 16 MB to match the measured board. A direct
+reconfigure from the repository path failed because the Windows toolchain
+mis-encoded `文档` in `Kconfig.projbuild`. The same source and configuration were
+copied to the ASCII-only directory `C:\Espressif\builds\openclaw-source-16mb`
+and built at `C:\Espressif\builds\openclaw-esp32s3-16mb`.
+
+The complete ESP-IDF 6.1 build finished with exit code 0. `esptool image-info`
+confirmed ESP32-S3, DIO at 80 MHz, and a 16 MB flash header. The application
+image is 851,184 bytes, with 45% of its app partition free. The local Wi-Fi
+SSID and password remain unconfigured, and this image has not been flashed.
 
 The COM port is transient and must be rechecked immediately before flashing.
 
@@ -60,3 +80,4 @@ Generated artifacts:
 
 The build generated `openclaw_esp32_s3.bin` and completed with exit code 0.
 Build artifacts remain outside Git and have not been flashed.
+

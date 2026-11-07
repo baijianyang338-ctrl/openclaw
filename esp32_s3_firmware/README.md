@@ -19,6 +19,8 @@ Implemented now:
 - ESP-IDF 6.1 (the project is compiled and dependency-locked against 6.1.0).
 - An ESP32-S3 board with BLE and Wi-Fi.
 - The iPhone and board on the same local Wi-Fi network.
+- The connected board was measured as ESP32-S3 revision v0.2 with 16 MB flash
+  and 8 MB PSRAM. The committed defaults select 16 MB flash for this board.
 
 No Wi-Fi password, signing key, API key, or other credential belongs in Git.
 The generated `sdkconfig` is intentionally ignored.
@@ -34,11 +36,13 @@ idf.py menuconfig
 idf.py build
 ```
 
-On Windows, use a build directory containing ASCII characters when the source
-repository lives under a path such as `文档`. The verified command was:
+On Windows, both the source staging directory and build directory need ASCII
+paths when the source repository lives under a path such as `文档`. Copy the
+firmware sources and local `sdkconfig` to an ASCII-only staging directory, then
+build there. The verified build output directory was:
 
 ```powershell
-idf.py -B C:\Espressif\builds\openclaw-esp32s3 build
+idf.py -B C:\Espressif\builds\openclaw-esp32s3-16mb build
 ```
 
 In `menuconfig`, open `OpenClaw ESP32-S3 Configuration` and set the Wi-Fi SSID
@@ -80,3 +84,4 @@ board to resume. `PING` remains available while stopped for diagnostics.
 ESP-IDF `examples/bluetooth/esp_hid_device` example and retain the original
 `Unlicense OR CC0-1.0` SPDX headers. The OpenClaw-specific HID report map,
 protocol validation, and command execution are implemented separately.
+
