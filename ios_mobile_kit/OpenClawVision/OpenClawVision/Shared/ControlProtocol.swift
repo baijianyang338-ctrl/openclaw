@@ -64,4 +64,7 @@ struct ESP32Health: Codable, Equatable {
     let status: String
     let device: String
     let protocolVersion: Int
+    let bleConnected: Bool?
+    let stopped: Bool?
 }
+

@@ -75,10 +75,24 @@ struct ContentView: View {
                         Task { await esp32Client.testConnection(host: esp32Host, port: esp32Port) }
                     }
                     Button("发送 PING") {
-                        Task { _ = try? await esp32Client.send(action: .ping, host: esp32Host, port: esp32Port) }
+                        Task {
+                            do {
+                                _ = try await esp32Client.send(action: .ping, host: esp32Host, port: esp32Port)
+                            } catch {
+                                // The client publishes the device's actual rejection for display below.
+                            }
+                        }
                     }
                     Button("紧急停止", role: .destructive) {
                         Task { await esp32Client.emergencyStop(host: esp32Host, port: esp32Port) }
+                    }
+                    if let acknowledgement = esp32Client.lastAcknowledgement {
+                        LabeledContent("最近确认", value: "#\(acknowledgement.id) \(acknowledgement.status.rawValue)")
+                    }
+                    if let error = esp32Client.lastCommandError {
+                        Text("指令失败：\(error)")
+                            .font(.caption)
+                            .foregroundStyle(.red)
                     }
                     Text("正式协议使用 HTTP JSON、指令序号与执行确认；重复序号必须由设备拒绝重复执行。")
                         .font(.caption)
@@ -122,3 +136,4 @@ struct ContentView: View {
         automation = AutomationSnapshot.load()
     }
 }
+

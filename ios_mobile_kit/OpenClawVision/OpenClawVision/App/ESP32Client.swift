@@ -21,7 +21,17 @@ final class ESP32Client: ObservableObject {
 
     @Published private(set) var state: ConnectionState = .disconnected
     @Published private(set) var lastAcknowledgement: ControlAcknowledgement?
-    private var nextCommandID: UInt64 = 1
+    @Published private(set) var lastCommandError: String?
+    private static let commandIDKey = "openclaw.nextCommandID"
+    private static let maximumCommandID: UInt64 = 9_007_199_254_740_991
+    private var nextCommandID: UInt64
+
+    init() {
+        let stored = (UserDefaults.standard.object(forKey: Self.commandIDKey) as? NSNumber)?.uint64Value
+        nextCommandID = stored.flatMap { (1...Self.maximumCommandID).contains($0) ? $0 : nil }
+            ?? UInt64.random(in: 1...4_000_000_000_000_000)
+        UserDefaults.standard.set(NSNumber(value: nextCommandID), forKey: Self.commandIDKey)
+    }
 
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -48,7 +58,8 @@ final class ESP32Client: ObservableObject {
             guard health.protocolVersion == 1 else {
                 throw ClientError.invalidProtocolVersion(health.protocolVersion)
             }
-            state = .connected(health.device)
+            let details = health.bleConnected == true ? "蓝牙已连接" : "蓝牙未连接"
+            state = .connected("\(health.device)，\(details)" + (health.stopped == true ? "，急停已锁定" : ""))
         } catch {
             state = .failed(error.localizedDescription)
         }
@@ -74,18 +85,28 @@ final class ESP32Client: ObservableObject {
             deltaY: deltaY,
             text: text
         )
-        nextCommandID &+= 1
+        nextCommandID = nextCommandID < Self.maximumCommandID ? nextCommandID + 1 : 1
+        UserDefaults.standard.set(NSNumber(value: nextCommandID), forKey: Self.commandIDKey)
         let body = try encoder.encode(command)
-        let acknowledgement: ControlAcknowledgement = try await request(
-            host: host,
-            port: port,
-            path: "/v1/command",
-            method: "POST",
-            body: body
-        )
-        guard acknowledgement.id == command.id else { throw ClientError.mismatchedAcknowledgement }
-        lastAcknowledgement = acknowledgement
-        return acknowledgement
+        do {
+            let acknowledgement: ControlAcknowledgement = try await request(
+                host: host,
+                port: port,
+                path: "/v1/command",
+                method: "POST",
+                body: body
+            )
+            guard acknowledgement.id == command.id else { throw ClientError.mismatchedAcknowledgement }
+            lastAcknowledgement = acknowledgement
+            guard acknowledgement.status == .executed else {
+                throw ClientError.commandNotExecuted(acknowledgement.status, acknowledgement.message)
+            }
+            lastCommandError = nil
+            return acknowledgement
+        } catch {
+            lastCommandError = error.localizedDescription
+            throw error
+        }
     }
 
     func emergencyStop(host: String, port: Int) async {
@@ -116,11 +137,23 @@ final class ESP32Client: ObservableObject {
         request.timeoutInterval = 3
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw ClientError.invalidResponse
         }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let acknowledgement = try? decoder.decode(ControlAcknowledgement.self, from: data) {
+                throw ClientError.deviceRejection(httpResponse.statusCode, acknowledgement.message ?? acknowledgement.status.rawValue)
+            }
+            if let failure = try? decoder.decode(DeviceError.self, from: data) {
+                throw ClientError.deviceRejection(httpResponse.statusCode, failure.error)
+            }
+            throw ClientError.httpFailure(httpResponse.statusCode)
+        }
         return try decoder.decode(Response.self, from: data)
+    }
+
+    private struct DeviceError: Decodable {
+        let error: String
     }
 
     enum ClientError: LocalizedError {
@@ -128,6 +161,9 @@ final class ESP32Client: ObservableObject {
         case invalidResponse
         case invalidProtocolVersion(Int)
         case mismatchedAcknowledgement
+        case deviceRejection(Int, String)
+        case httpFailure(Int)
+        case commandNotExecuted(AcknowledgementStatus, String?)
 
         var errorDescription: String? {
             switch self {
@@ -135,7 +171,11 @@ final class ESP32Client: ObservableObject {
             case .invalidResponse: return "设备响应无效"
             case .invalidProtocolVersion(let value): return "协议版本不兼容：\(value)"
             case .mismatchedAcknowledgement: return "确认序号与指令不一致"
+            case .deviceRejection(let code, let message): return "设备拒绝（HTTP \(code)）：\(message)"
+            case .httpFailure(let code): return "设备返回 HTTP \(code)"
+            case .commandNotExecuted(let status, let message): return "指令未执行（\(status.rawValue)）：\(message ?? "无说明")"
             }
         }
     }
 }
+
