@@ -66,9 +66,19 @@ workflows:
           test -n "$APP_PATH"
           test -d "$APP_PATH/PlugIns/OpenClawBroadcast.appex"
           /usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$APP_PATH/PlugIns/OpenClawBroadcast.appex/Info.plist"
+      - name: Package unsigned IPA for local signing experiments
+        script: |
+          set -euo pipefail
+          APP_PATH=$(find "$CM_BUILD_DIR/build/DerivedData/Build/Products/Debug-iphoneos" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          mkdir -p "$CM_BUILD_DIR/build/unsigned-ipa/Payload"
+          ditto "$APP_PATH" "$CM_BUILD_DIR/build/unsigned-ipa/Payload/$(basename "$APP_PATH")"
+          ditto -c -k --keepParent "$CM_BUILD_DIR/build/unsigned-ipa/Payload" "$CM_BUILD_DIR/build/OpenClawVision-unsigned.ipa"
+          unzip -l "$CM_BUILD_DIR/build/OpenClawVision-unsigned.ipa" | grep 'Payload/OpenClawVision.app/PlugIns/OpenClawBroadcast.appex/Info.plist'
     artifacts:
       - build/xcodebuild.log
       - build/DerivedData/Build/Products/Debug-iphoneos/*.app
+      - build/OpenClawVision-unsigned.ipa
     triggering:
       events:
         - push
@@ -101,3 +111,4 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+
