@@ -208,7 +208,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
             guard let address = buffer.baseAddress else { return }
             iconContext.render(
                 local,
-                to: address,
+                toBitmap: address,
                 rowBytes: columns * 4,
                 bounds: CGRect(x: 0, y: 0, width: CGFloat(columns), height: CGFloat(rows)),
                 format: .RGBA8,
