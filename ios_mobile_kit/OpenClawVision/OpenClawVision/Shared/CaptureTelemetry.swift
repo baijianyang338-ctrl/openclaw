@@ -43,11 +43,11 @@ struct CaptureTelemetry: Codable, Equatable {
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        SharedDefaults.store.set(data, forKey: AppConstants.captureTelemetryKey)
+        CrossProcessStore.set(data, forKey: AppConstants.captureTelemetryKey)
     }
 
     static func load() -> CaptureTelemetry {
-        guard let data = SharedDefaults.store.data(forKey: AppConstants.captureTelemetryKey),
+        guard let data = CrossProcessStore.data(forKey: AppConstants.captureTelemetryKey),
               let telemetry = try? JSONDecoder().decode(CaptureTelemetry.self, from: data) else {
             return .empty
         }
