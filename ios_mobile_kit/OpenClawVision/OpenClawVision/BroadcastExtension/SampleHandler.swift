@@ -1,4 +1,5 @@
 import CoreMedia
+import CoreImage
 import Foundation
 import ReplayKit
 import Vision
@@ -6,6 +7,7 @@ import Vision
 final class SampleHandler: RPBroadcastSampleHandler {
     private let processingQueue = DispatchQueue(label: "com.baijianyang.openclawvision.ocr", qos: .userInitiated)
     private let processingGate = DispatchSemaphore(value: 1)
+    private let iconContext = CIContext()
     private var lastProcessedTimestamp = CMTime.invalid
     private let minimumFrameInterval = CMTime(seconds: 0.75, preferredTimescale: 600)
     private var telemetry = CaptureTelemetry.empty
@@ -15,6 +17,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
     private let stateMachine = AutomationStateMachine()
     private let ruleConsensus = RuleConsensusEvaluator()
     private var didProbeESP32 = false
+    private var consecutiveIconFrames = 0
 
     override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
         lastProcessedTimestamp = .invalid
@@ -29,6 +32,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
         _ = stateMachine.transition(to: .searching, message: "正在画面中寻找福袋")
         ruleConsensus.reset()
         didProbeESP32 = false
+        consecutiveIconFrames = 0
     }
 
     override func broadcastPaused() {
@@ -83,8 +87,13 @@ final class SampleHandler: RPBroadcastSampleHandler {
 
     private func recognizeText(in pixelBuffer: CVPixelBuffer) {
         let startedAt = Date()
+        let iconCandidate = detectGiveawayIcon(in: pixelBuffer)
+        telemetry.iconCandidateConfidence = iconCandidate?.confidence
+        telemetry.iconCandidateBox = iconCandidate?.box
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .fast
+        // Chinese activity rules need the neural recognition path. The fast path
+        // produced Latin-looking garbage for real Douyin text on the test phone.
+        request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         request.recognitionLanguages = ["zh-Hans", "en-US"]
 
@@ -106,6 +115,11 @@ final class SampleHandler: RPBroadcastSampleHandler {
                 return
             }
             let limited = Array(recognized.prefix(40))
+            if limited.filter({ $0.text.contains("OpenClaw Vision") }).count >= 2 {
+                // Returning to the host app must not overwrite the last
+                // third-party frame or start a new activity from our own UI.
+                return
+            }
             let confidence = limited.map(\.confidence).reduce(0, +) / Float(limited.count)
             let result = OCRResult(
                 lines: limited.map(\.text),
@@ -117,7 +131,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
             telemetry.lastOCRDurationMilliseconds = Date().timeIntervalSince(startedAt) * 1_000
             telemetry.failureReason = nil
             telemetry.save()
-            analyze(result)
+            analyze(result, iconCandidate: iconCandidate)
         } catch {
             telemetry.state = .failed
             telemetry.failureReason = error.localizedDescription
@@ -126,22 +140,24 @@ final class SampleHandler: RPBroadcastSampleHandler {
         }
     }
 
-    private func analyze(_ result: OCRResult) {
-        guard RuleExtractor.containsGiveaway(in: result) else {
-            ruleConsensus.reset()
-            if stateMachine.snapshot.state == .idle {
-                _ = stateMachine.transition(to: .searching, message: "正在画面中寻找福袋")
-            }
-            return
+    private func analyze(_ result: OCRResult, iconCandidate: IconCandidate?) {
+        let popupVisible = RuleExtractor.hasRulePopup(in: result)
+        consecutiveIconFrames = iconCandidate == nil ? 0 : min(consecutiveIconFrames + 1, 3)
+        if stateMachine.snapshot.state == .idle {
+            _ = stateMachine.transition(to: .searching, message: "正在画面中寻找福袋图标")
         }
-
-        if stateMachine.snapshot.state == .searching {
-            _ = stateMachine.transition(to: .detected, message: "已发现福袋相关画面")
+        if stateMachine.snapshot.state == .searching,
+           consecutiveIconFrames >= 3 || popupVisible {
+            _ = stateMachine.transition(to: .detected, message: "已发现福袋图标或活动弹窗")
         }
-        if stateMachine.snapshot.state == .detected {
+        if stateMachine.snapshot.state == .detected && popupVisible {
             _ = stateMachine.transition(to: .readingRules, message: "正在读取参与规则")
         }
         guard stateMachine.snapshot.state == .readingRules else { return }
+        guard popupVisible else {
+            ruleConsensus.reset()
+            return
+        }
         guard let candidate = RuleExtractor.extract(from: result) else {
             ruleConsensus.reset()
             _ = stateMachine.transition(to: .readingRules, message: "未能唯一确认评论规则，继续识别")
@@ -159,6 +175,81 @@ final class SampleHandler: RPBroadcastSampleHandler {
         )
         _ = stateMachine.transition(to: .ready, message: "规则已确认，等待安全执行")
         probeESP32Health()
+    }
+
+    private struct IconCandidate {
+        let box: NormalizedRect
+        let confidence: Float
+    }
+
+    // Screen samples show a compact purple gift badge in the upper-left band.
+    // This color/geometry detector is a candidate generator, not final proof
+    // of a giveaway. Three frames or a rule popup are needed for state change.
+    private func detectGiveawayIcon(in pixelBuffer: CVPixelBuffer) -> IconCandidate? {
+        let image = CIImage(cvPixelBuffer: pixelBuffer)
+        let frame = image.extent
+        guard frame.width > 0, frame.height > 0 else { return nil }
+        let roi = CGRect(
+            x: frame.width * 0.02,
+            y: frame.height * 0.70,
+            width: frame.width * 0.43,
+            height: frame.height * 0.18
+        )
+        let columns = 120
+        let rows = 64
+        let local = image.cropped(to: roi)
+            .transformed(by: CGAffineTransform(translationX: -roi.minX, y: -roi.minY))
+            .transformed(by: CGAffineTransform(
+                scaleX: CGFloat(columns) / roi.width,
+                y: CGFloat(rows) / roi.height
+            ))
+        var pixels = [UInt8](repeating: 0, count: columns * rows * 4)
+        pixels.withUnsafeMutableBytes { buffer in
+            guard let address = buffer.baseAddress else { return }
+            iconContext.render(
+                local,
+                to: address,
+                rowBytes: columns * 4,
+                bounds: CGRect(x: 0, y: 0, width: CGFloat(columns), height: CGFloat(rows)),
+                format: .RGBA8,
+                colorSpace: CGColorSpaceCreateDeviceRGB()
+            )
+        }
+        let windowWidth = 24
+        let windowHeight = 14
+        var best = 0
+        var bestX = 0
+        var bestY = 0
+        for y in stride(from: 0, through: rows - windowHeight, by: 2) {
+            for x in stride(from: 0, through: columns - windowWidth, by: 2) {
+                var count = 0
+                for row in y..<(y + windowHeight) {
+                    for column in x..<(x + windowWidth) {
+                        let offset = (row * columns + column) * 4
+                        let red = Int(pixels[offset])
+                        let green = Int(pixels[offset + 1])
+                        let blue = Int(pixels[offset + 2])
+                        if red > 90 && blue > 90 && green * 5 < min(red, blue) * 4 {
+                            count += 1
+                        }
+                    }
+                }
+                if count > best {
+                    best = count
+                    bestX = x
+                    bestY = y
+                }
+            }
+        }
+        let ratio = Float(best) / Float(windowWidth * windowHeight)
+        guard ratio >= 0.16 else { return nil }
+        let box = NormalizedRect(
+            x: Float((roi.minX + CGFloat(bestX) / CGFloat(columns) * roi.width) / frame.width),
+            y: Float((roi.minY + CGFloat(bestY) / CGFloat(rows) * roi.height) / frame.height),
+            width: Float(CGFloat(windowWidth) / CGFloat(columns) * roi.width / frame.width),
+            height: Float(CGFloat(windowHeight) / CGFloat(rows) * roi.height / frame.height)
+        )
+        return IconCandidate(box: box, confidence: min(1, ratio / 0.27))
     }
 
     private func probeESP32Health() {

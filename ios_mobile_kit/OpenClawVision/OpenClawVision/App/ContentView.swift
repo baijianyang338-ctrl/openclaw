@@ -36,6 +36,9 @@ struct ContentView: View {
                     if let duration = telemetry.lastOCRDurationMilliseconds {
                         LabeledContent("最近 OCR 延迟", value: String(format: "%.0f ms", duration))
                     }
+                    if let confidence = telemetry.iconCandidateConfidence {
+                        LabeledContent("福袋图标候选", value: String(format: "%.0f%%", confidence * 100))
+                    }
                     if let lastFrameAt = telemetry.lastFrameAt {
                         LabeledContent("最近画面", value: lastFrameAt.formatted(date: .omitted, time: .standard))
                     }
@@ -232,3 +235,4 @@ struct ContentView: View {
         }
     }
 }
+

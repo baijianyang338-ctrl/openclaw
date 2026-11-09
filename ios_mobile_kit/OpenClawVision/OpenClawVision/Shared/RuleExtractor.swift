@@ -12,16 +12,22 @@ enum RuleExtractor {
         return text.contains("福袋") || text.contains("参与条件") || text.contains("开奖")
     }
 
+    static func hasRulePopup(in result: OCRResult) -> Bool {
+        let text = result.lines.joined(separator: " ")
+        return text.contains("福袋") &&
+            (text.contains("参与条件") || text.contains("福袋任务") ||
+             text.contains("指定评论") || text.contains("评论要求"))
+    }
+
     static func extract(from result: OCRResult) -> ExtractedRule? {
-        let allText = result.lines.joined(separator: " ")
-        guard allText.contains("福袋"),
-              allText.contains("参与条件") || allText.contains("指定评论") || allText.contains("评论要求") else {
+        guard hasRulePopup(in: result),
+              !indicatesParticipation(in: result) else {
             return nil
         }
         let observations = result.observations ?? result.lines.map {
             RecognizedText(text: $0, confidence: result.averageConfidence ?? 0)
         }
-        let pattern = #"(?:指定|要求)?(?:评论|发送|输入|口令)(?:内容|文字)?[：:]\s*(.+)$"#
+        let pattern = #"(?:指定评论|要求评论|发送评论|评论要求|评论|发送|输入|口令)(?:内容|文字)?[：:]\s*(.+)$"#
         guard let expression = try? NSRegularExpression(pattern: pattern) else { return nil }
         var candidates: [String: Float] = [:]
         for observation in observations {
@@ -41,6 +47,12 @@ enum RuleExtractor {
             confidence: candidate.value,
             countdownSeconds: extractCountdown(from: result.lines)
         )
+    }
+
+    static func indicatesParticipation(in result: OCRResult) -> Bool {
+        let text = result.lines.joined(separator: " ")
+        return text.contains("已成功参与") ||
+            (text.contains("任务已完成") && text.contains("等待开奖"))
     }
 
     private static func unquote(_ text: String) -> String {

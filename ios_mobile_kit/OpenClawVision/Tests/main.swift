@@ -32,6 +32,24 @@ let unrelated = sample([
 ])
 precondition(RuleExtractor.extract(from: unrelated) == nil)
 
+let livePopup = sample([
+    ("超级福袋", 0.98),
+    ("福袋任务", 0.96),
+    ("发送评论：点点关注，左上角参与领取18pro", 0.91),
+    ("11:21 后开奖", 0.94)
+])
+let liveRule = RuleExtractor.extract(from: livePopup)
+precondition(liveRule?.requiredComment == "点点关注，左上角参与领取18pro")
+precondition(liveRule?.countdownSeconds == 681)
+
+let alreadyJoined = sample([
+    ("超级福袋", 0.98),
+    ("任务已完成 等待开奖", 0.94),
+    ("发送评论：点点关注，左上角参与领取18pro", 0.93)
+])
+precondition(RuleExtractor.indicatesParticipation(in: alreadyJoined))
+precondition(RuleExtractor.extract(from: alreadyJoined) == nil)
+
 let lowConfidence = sample([
     ("福袋 参与条件", 0.99),
     ("指定评论：测试", 0.60)
