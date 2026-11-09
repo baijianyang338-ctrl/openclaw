@@ -34,11 +34,11 @@ struct AutomationSnapshot: Codable, Equatable {
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        SharedDefaults.store.set(data, forKey: AppConstants.automationSnapshotKey)
+        CrossProcessStore.set(data, forKey: AppConstants.automationSnapshotKey)
     }
 
     static func load() -> AutomationSnapshot {
-        guard let data = SharedDefaults.store.data(forKey: AppConstants.automationSnapshotKey),
+        guard let data = CrossProcessStore.data(forKey: AppConstants.automationSnapshotKey),
               let snapshot = try? JSONDecoder().decode(AutomationSnapshot.self, from: data) else {
             return .idle
         }
