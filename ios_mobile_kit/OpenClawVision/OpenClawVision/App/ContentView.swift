@@ -21,11 +21,11 @@ struct ContentView: View {
                 Section("屏幕采集") {
                     HStack {
                         BroadcastPickerView()
-                            .frame(width: 52, height: 52)
+                            .frame(width: 64, height: 64)
                         VStack(alignment: .leading, spacing: 4) {
                             Text("启动屏幕广播")
                                 .font(.headline)
-                            Text("由系统确认后，广播扩展会在本机识别画面文字。")
+                            Text("点左侧灰色广播按钮；也可在控制中心长按屏幕录制并选 OpenClaw Screen OCR。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
