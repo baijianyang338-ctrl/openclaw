@@ -1,0 +1,72 @@
+name: iOS unsigned IPA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ios-unsigned.yml"
+      - "ios_mobile_kit/**"
+      - "mock_esp32/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Xcode and run local tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          python3 -m unittest discover -s mock_esp32/tests -v
+          mkdir -p build
+          swiftc \
+            ios_mobile_kit/OpenClawVision/OpenClawVision/Shared/AppConstants.swift \
+            ios_mobile_kit/OpenClawVision/OpenClawVision/Shared/OCRResult.swift \
+            ios_mobile_kit/OpenClawVision/OpenClawVision/Shared/RuleExtractor.swift \
+            ios_mobile_kit/OpenClawVision/Tests/main.swift \
+            -o build/rule-tests
+          build/rule-tests
+      - name: Build iOS app without signing
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios_mobile_kit/OpenClawVision/OpenClawVision.xcodeproj \
+            -scheme OpenClawVision \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build | tee build/xcodebuild.log
+      - name: Verify broadcast extension and package IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path=$(find build/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$app_path"
+          test -d "$app_path/PlugIns/OpenClawBroadcast.appex"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$app_path/PlugIns/OpenClawBroadcast.appex/Info.plist")" = "com.apple.broadcast-services-upload"
+          mkdir -p build/unsigned-ipa/Payload
+          ditto "$app_path" "build/unsigned-ipa/Payload/$(basename "$app_path")"
+          ditto -c -k --keepParent build/unsigned-ipa/Payload build/OpenClawVision-unsigned.ipa
+          unzip -t build/OpenClawVision-unsigned.ipa >/dev/null
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenClawVision-unsigned
+          path: build/OpenClawVision-unsigned.ipa
+          if-no-files-found: error
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-failure-log
+          path: build/xcodebuild.log
+          if-no-files-found: ignore
