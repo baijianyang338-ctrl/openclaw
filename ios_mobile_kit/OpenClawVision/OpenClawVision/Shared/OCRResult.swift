@@ -44,11 +44,11 @@ struct OCRResult: Codable, Equatable {
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        SharedDefaults.store.set(data, forKey: AppConstants.ocrResultKey)
+        CrossProcessStore.set(data, forKey: AppConstants.ocrResultKey)
     }
 
     static func load() -> OCRResult {
-        guard let data = SharedDefaults.store.data(forKey: AppConstants.ocrResultKey),
+        guard let data = CrossProcessStore.data(forKey: AppConstants.ocrResultKey),
               let result = try? JSONDecoder().decode(OCRResult.self, from: data) else {
             return .empty
         }
