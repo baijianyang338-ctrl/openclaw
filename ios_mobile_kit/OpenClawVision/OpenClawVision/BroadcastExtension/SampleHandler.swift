@@ -33,17 +33,22 @@ final class SampleHandler: RPBroadcastSampleHandler {
 
     override func broadcastPaused() {
         telemetry.state = .paused
+        telemetry.framesPerSecond = 0
         telemetry.save()
     }
 
     override func broadcastResumed() {
+        fpsWindowStartedAt = Date()
+        fpsWindowFrameCount = 0
         telemetry.state = .running
         telemetry.save()
     }
 
     override func broadcastFinished() {
         telemetry.state = .finished
+        telemetry.framesPerSecond = 0
         telemetry.save()
+        stateMachine.reset()
         NSLog("OpenClawBroadcast finished after %lld video frames", telemetry.receivedFrameCount)
     }
 
@@ -52,7 +57,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         recordReceivedFrame()
-        if SharedDefaults.store.bool(forKey: AppConstants.processingPausedKey) {
+        if CrossProcessStore.data(forKey: AppConstants.processingPausedKey)?.first == 1 {
             telemetry.state = .paused
             telemetry.save()
             return
@@ -159,14 +164,15 @@ final class SampleHandler: RPBroadcastSampleHandler {
     private func probeESP32Health() {
         guard !didProbeESP32 else { return }
         didProbeESP32 = true
-        let host = SharedDefaults.store.string(forKey: "esp32Host") ?? "192.168.4.1"
-        guard let token = SharedDefaults.store.string(forKey: "esp32Token"), !token.isEmpty else {
+        let host = CrossProcessStore.data(forKey: "esp32Host").flatMap { String(data: $0, encoding: .utf8) } ?? "192.168.4.1"
+        guard let token = CrossProcessStore.data(forKey: "esp32Token").flatMap({ String(data: $0, encoding: .utf8) }), !token.isEmpty else {
             telemetry.networkProbeStatus = "未配置设备配对令牌"
             telemetry.save()
             return
         }
-        let savedPort = SharedDefaults.store.integer(forKey: "esp32Port")
-        let port = savedPort == 0 ? 3333 : savedPort
+        let port = CrossProcessStore.data(forKey: "esp32Port")
+            .flatMap { String(data: $0, encoding: .utf8) }
+            .flatMap(Int.init) ?? 3333
         guard (1...65535).contains(port),
               var components = URLComponents(string: "http://\(host)") else {
             telemetry.networkProbeStatus = "ESP32 地址无效"
