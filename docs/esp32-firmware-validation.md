@@ -57,6 +57,17 @@ reported protocol v1, chip temperature 33-35 °C, and no overheat. No response
 contained the token. A private local NVS read confirmed a 32-character token;
 its value was never printed or committed.
 
+On 2026-11-09, the board was reconnected on `COM3`, joined the iPhone hotspot
+as `172.20.10.2`, and passed a fresh authenticated health check. Health
+reported BLE connected, not stopped, and 27-28 °C. A new PING returned
+`EXECUTED`; reusing its ID returned `DUPLICATE`. The board typed its own
+32-character token into the focused iPhone App field via BLE HID keyboard;
+the user then confirmed the App's authenticated connection test showed
+connected, BLE connected, and 28 °C. The user also sent PING from the App and
+provided a screenshot of the matching `EXECUTED` acknowledgement. This verifies
+the iPhone App to Wi-Fi to physical ESP32 request/response path and one ASCII
+BLE keyboard input. It does not prove Chinese input or a completed screen action.
+
 The first BLE advertising payload exceeded the legacy packet limit and the
 serial log reported a partial write. A subsequent structured-data attempt
 failed with code 258. The current firmware uses an explicit 28-byte packet
@@ -86,6 +97,16 @@ verified**; the pointer position and iPhone button mapping need further
 diagnosis. The final authenticated `STOP` returned `EXECUTED` and health
 confirmed `stopped: true`. The temporary page server was then shut down.
 
+On 2026-11-09, the Safari test page was served again from the Windows PC and
+the phone fetched it over the hotspot. A physical `CLICK` again returned
+`EXECUTED` but did not increment the server counter. A move-to-page sequence
+also returned `EXECUTED` for two moves and a click, with no new click event.
+The user confirmed AssistiveTouch was enabled and Bluetooth was connected,
+but the pointer was not visible in Safari and the controller did not appear
+under AssistiveTouch's Devices list. Pointer visibility and iOS button mapping
+remain under diagnosis. `EXECUTED` still means only that the firmware API
+accepted the BLE report.
+
 The COM port is transient and must be rechecked immediately before flashing.
 
 ## Host-side protocol tests
@@ -108,12 +129,12 @@ python -m unittest discover -s mock_esp32/tests -v
 
 ## Still requiring hardware verification
 
-- iPhone click, scroll, key events, precise pointer calibration, and repeated
-  disconnect/reconnect cycles. One automatic BLE reconnect was observed.
-- iPhone Bluetooth pairing and reconnect behavior.
+- iPhone click, scroll, precise pointer calibration, and repeated
+  disconnect/reconnect cycles. BLE pairing and one pointer movement were
+  user-observed, but click has not changed a test page.
 - Mouse direction, scroll direction, pointer acceleration, and absolute
   coordinate calibration.
-- ASCII keyboard layout on the selected iOS keyboard.
+- ASCII keyboard layout beyond the tested lowercase hexadecimal token.
 - Chinese text entry strategy.
 - Long-running Wi-Fi reconnect, latency, power, and thermal measurements.
 - Overheat-trigger and recovery behavior on hardware; sensor initialization
@@ -130,3 +151,4 @@ mis-encoded `文档`. Building from the ASCII-only staging source at
 `C:\Espressif\builds\openclaw-esp32s3-16mb` resolved that host tooling issue.
 The personalized local BIN contains the configured Wi-Fi credentials and must
 not be published or attached to a GitHub release.
+
