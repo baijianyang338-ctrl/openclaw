@@ -52,6 +52,7 @@ struct ContentView: View {
                     }
                     Button(processingPaused ? "继续本地识别" : "暂停本地识别") {
                         processingPaused.toggle()
+                        mirrorSettingsToExtension()
                     }
                     .disabled(telemetry.state == .idle || telemetry.state == .finished)
                     Text("停止系统广播请再次点击上方广播按钮，并在系统面板中选择停止。iOS 不允许应用绕过系统界面静默开始或停止跨 App 采集。")
@@ -183,8 +184,21 @@ struct ContentView: View {
             }
             .navigationTitle("OpenClaw Vision")
         }
-        .onAppear(perform: reloadResult)
+        .onAppear {
+            reloadResult()
+            mirrorSettingsToExtension()
+        }
+        .onChange(of: esp32Host) { _, _ in mirrorSettingsToExtension() }
+        .onChange(of: esp32Port) { _, _ in mirrorSettingsToExtension() }
+        .onChange(of: esp32Token) { _, _ in mirrorSettingsToExtension() }
         .onReceive(refreshTimer) { _ in reloadResult() }
+    }
+
+    private func mirrorSettingsToExtension() {
+        CrossProcessStore.set(Data(esp32Host.utf8), forKey: "esp32Host")
+        CrossProcessStore.set(Data(String(esp32Port).utf8), forKey: "esp32Port")
+        CrossProcessStore.set(Data(esp32Token.utf8), forKey: "esp32Token")
+        CrossProcessStore.set(Data([processingPaused ? 1 : 0]), forKey: AppConstants.processingPausedKey)
     }
 
     private func reloadResult() {
