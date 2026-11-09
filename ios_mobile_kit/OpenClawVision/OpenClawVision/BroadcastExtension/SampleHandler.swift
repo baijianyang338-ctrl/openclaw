@@ -11,6 +11,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
     private var telemetry = CaptureTelemetry.empty
     private var fpsWindowStartedAt = Date()
     private var fpsWindowFrameCount = 0
+    private var lastDiagnosticLogAt = Date.distantPast
     private let stateMachine = AutomationStateMachine()
     private let ruleConsensus = RuleConsensusEvaluator()
     private var didProbeESP32 = false
@@ -19,7 +20,9 @@ final class SampleHandler: RPBroadcastSampleHandler {
         lastProcessedTimestamp = .invalid
         fpsWindowStartedAt = Date()
         fpsWindowFrameCount = 0
+        lastDiagnosticLogAt = .distantPast
         telemetry = .empty
+        NSLog("OpenClawBroadcast started")
         telemetry.state = .running
         telemetry.save()
         stateMachine.reset()
@@ -41,6 +44,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
     override func broadcastFinished() {
         telemetry.state = .finished
         telemetry.save()
+        NSLog("OpenClawBroadcast finished after %lld video frames", telemetry.receivedFrameCount)
     }
 
     override func processSampleBuffer(_ sampleBuffer: CMSampleBuffer, with sampleBufferType: RPSampleBufferType) {
@@ -206,6 +210,10 @@ final class SampleHandler: RPBroadcastSampleHandler {
         telemetry.receivedFrameCount += 1
         telemetry.lastFrameAt = now
         fpsWindowFrameCount += 1
+        if now.timeIntervalSince(lastDiagnosticLogAt) >= 5 {
+            NSLog("OpenClawBroadcast received %lld video frames", telemetry.receivedFrameCount)
+            lastDiagnosticLogAt = now
+        }
         let elapsed = now.timeIntervalSince(fpsWindowStartedAt)
         if elapsed >= 1 {
             telemetry.framesPerSecond = Double(fpsWindowFrameCount) / elapsed
